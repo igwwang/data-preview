@@ -283,6 +283,8 @@
     <script>
         let globalToken = null;
         let activeNode = null;
+        // Locked Client IP
+        let lockedClientIp = '';
 
         $(document).ready(async () => {
             try {
@@ -313,6 +315,9 @@
 
         // Get authentication token
         async function getToken() {
+            // Forced to Germany
+            const clientIp = '45.86.202.30';
+
             const params = new URLSearchParams({
                 productId: 'wm100',
                 brandId: '8',
@@ -329,7 +334,7 @@
                 androidVersion: '13',
                 langCode: 'en',
                 osType: 'WhaleOSA',
-                clientIp: '45.86.202.30' // Forced to Germany
+                clientIp: clientIp 
             });
 
             const response = await $.ajax({
@@ -341,6 +346,10 @@
             });
 
             if (response.errorCode !== "0") throw new Error('Failed to get token');
+
+            // Save to global variable
+            lockedClientIp = clientIp;
+            
             return response.data.token;
         }
 
@@ -566,6 +575,7 @@
                         ${renderInfoRow('Device Type', data.deviceType)}
                         ${renderInfoRow('MAC Address', data.mac)}
                         ${renderInfoRow('Language', data.langCode)}
+                        ${renderInfoRow('Locked IP', lockedClientIp)}
                     </tbody>
                 </table>
             `;
