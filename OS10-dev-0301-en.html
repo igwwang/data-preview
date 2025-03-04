@@ -223,6 +223,43 @@
             width: 160px;
         }
     </style>
+    <style>
+        /* Add overlay styling */
+        .card-img-overlay {
+            pointer-events: none;
+            padding: 2px 6px;
+            background: rgba(0, 0, 0, 0.7);
+            width: fit-content;
+            border-radius: 0 0 4px 0;
+            max-width: 40%;
+            height: 26px;
+            line-height: 1.2;
+        }
+        
+        .type-badge {
+            color: white;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Mobile adjustment */
+        @media (max-width: 768px) {
+            .card-img-overlay {
+                padding: 1px 4px;
+                max-width: 40%;
+                height: 19px;
+            }
+            
+            .type-badge {
+                font-size: 0.6rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container-fluid">
@@ -334,7 +371,7 @@
                 androidVersion: '13',
                 langCode: 'en',
                 osType: 'WhaleOSA',
-                clientIp: clientIp 
+                clientIp: clientIp
             });
 
             const response = await $.ajax({
@@ -460,8 +497,25 @@
                     const $col = $('<div>').addClass('col-12 col-md-6 col-lg-4 mb-4');
                     const $card = $('<div>').addClass('card h-100 shadow-sm');
                     
+                    // Add overlay container
+                    const $overlay = $('<div>').addClass('card-img-overlay');
+                    
+                    // Parse objectType
+                    let objectType = 'N/A';
+                    try {
+                        const valueObj = JSON.parse(item.value);
+                        objectType = valueObj.objectType || 'N/A';
+                    } catch(e) {
+                        console.warn('Failed to parse value:', item.value);
+                    }
+                    
+                    $overlay.append(
+                        $('<span>').addClass('type-badge').text(objectType)
+                    );
+                    
                     // Image section
                     if (item.icon) {
+                        const $imgContainer = $('<div>').addClass('position-relative');
                         $('<img>')
                             .addClass('content-image')
                             .attr('src', item.icon)
@@ -469,7 +523,22 @@
                             .on('error', function() {
                                 $(this).attr('src', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
                             })
-                            .appendTo($card);
+                            .appendTo($imgContainer);
+                        
+                        try {
+                            const valueObj = JSON.parse(item.value);
+                            if (valueObj && valueObj.objectType) {
+                                const $overlay = $('<div>').addClass('card-img-overlay');
+                                $overlay.append(
+                                    $('<span>').addClass('type-badge').text(valueObj.objectType)
+                                );
+                                $imgContainer.append($overlay);
+                            }
+                        } catch(e) {
+                            console.warn('Failed to parse value:', item.value);
+                        }
+
+                        $card.append($imgContainer);
                     }
 
                     // Content body
