@@ -668,7 +668,7 @@
         // Add new resource details related methods
         async function getResourceDetail(resourceType, value) {
             const encodedValue = encodeURIComponent(value);
-            const url = `https://acc-saas.zeasn.tv/sp/api/device/v1/column/resourceDetail?token=${globalToken}&resourceType=${resourceType}&value=${encodedValue}&needPoster=true&posterWidth=1280&needAward=true`;
+            const url = `https://dev-saas.zeasn.tv/sp/api/device/v1/column/resourceDetail?token=${globalToken}&resourceType=${resourceType}&value=${encodedValue}&needPoster=true&posterWidth=1280&needAward=true`;
             
             const response = await $.ajax({
                 url: url,
