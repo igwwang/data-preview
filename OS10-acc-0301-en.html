@@ -288,6 +288,36 @@
             cursor: pointer;
         }
     </style>
+    <style>
+        .deeplink-icon {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .deeplink-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .tooltip-custom {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Mobile optimization */
+        @media (max-width: 768px) {
+            .deeplink-icon {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .deeplink-item {
+                margin: 0 8px 8px 0;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container-fluid">
@@ -598,6 +628,42 @@
                         );
                     }
 
+                    // Play source display
+                    if (item.deeplinkDetailList?.length > 0) {
+                        const $sources = $('<div>').addClass('mt-2');
+                        
+                        // Deduplication
+                        const uniqueSources = [];
+                        const seenIds = new Set();
+                        
+                        item.deeplinkDetailList.forEach(link => {
+                            if (!seenIds.has(link.sourceId)) {
+                                seenIds.add(link.sourceId);
+                                uniqueSources.push({
+                                    icon: link.sourceIcon,
+                                    name: link.sourceName
+                                });
+                            }
+                        });
+
+                        const sourcesHtml = `
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">Available On:</small>
+                                ${uniqueSources.map(source => `
+                                    <img src="${source.icon}" 
+                                         alt="${source.name}"
+                                         class="deeplink-icon"
+                                         data-bs-toggle="tooltip" 
+                                         title="${source.name}"
+                                         style="width:24px;height:24px">
+                                `).join('')}
+                            </div>
+                        `;
+
+                        $sources.html(sourcesHtml);
+                        $body.append($sources);
+                    }
+
                     // Footer info
                     const $footer = $('<div>').addClass('card-footer bg-transparent');
                     if (item.moreInfo?.videoScores) {
@@ -635,6 +701,13 @@
                             alert('Failed to load details: ' + error.message);
                         }
                     });
+                });
+
+                // Initialize Tooltip with custom configuration
+                $('[data-bs-toggle="tooltip"]').tooltip({
+                    trigger: 'hover',
+                    boundary: 'window',
+                    customClass: 'tooltip-custom'
                 });
             } catch (error) {
                 console.error('Rendering failed:', error);
@@ -708,6 +781,41 @@
                 imageUrl = data.covers[0].url;
             }
 
+            // Add Deeplinks Handling
+            let deeplinksHtml = '';
+            if (data.deeplinks?.length > 0) {
+                // Deduplication
+                const uniqueSources = [];
+                const seenIds = new Set();
+                
+                data.deeplinks.forEach(link => {
+                    if (!seenIds.has(link.sourceId)) {
+                        seenIds.add(link.sourceId);
+                        uniqueSources.push({
+                            icon: link.sourceIcon,
+                            name: link.sourceName
+                        });
+                    }
+                });
+
+                deeplinksHtml = `
+                    <div class="mt-4">
+                        <h6 class="detail-label">Available On</h6>
+                        <div class="d-flex flex-wrap gap-3">
+                            ${uniqueSources.map(source => `
+                                <div class="deeplink-item">
+                                    <img src="${source.icon}" 
+                                         alt="${source.name}" 
+                                         class="deeplink-icon"
+                                         data-bs-toggle="tooltip" 
+                                         title="${source.name}">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
             const detailHtml = `
                 <div class="text-center">
                     <img src="${imageUrl}" class="detail-modal-img" alt="${baseInfo.name}">
@@ -725,10 +833,14 @@
                     <div class="detail-item">
                         <span class="detail-label">Description:</span> ${baseInfo.description}
                     </div>
+                    ${deeplinksHtml}
                 </div>
             `;
 
             $content.html(detailHtml);
+
+            // Initialize Tooltip
+            $('[data-bs-toggle="tooltip"]').tooltip();
         }
     </script>
     <script>
