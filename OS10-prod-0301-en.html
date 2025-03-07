@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart TV Content Platform</title>
+    <title>Smart TV Content PROD</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* 基础字体调整 */
+        /* Basic font adjustment */
         body {
             font-size: 16px;
         }
 
-        /* 桌面端默认样式 */
+        /* Desktop default style */
         .card-title {
             font-size: 1.1rem;
         }
@@ -24,7 +24,7 @@
             font-size: 0.9rem;
         }
 
-        /* 移动端适配 */
+        /* Mobile devices adaptation */
         @media (max-width: 768px) {
             body {
                 font-size: 14px;
@@ -60,14 +60,14 @@
                 font-size: 1.1rem;
             }
 
-            /* 调整树形结构缩进 */
+            /* Adjust the tree structure indentation */
             .children-list {
                 margin-left: 15px;
                 padding-left: 10px;
             }
         }
 
-        /* 超小屏幕优化 */
+        /* Optimization for ultra-small screens */
         @media (max-width: 480px) {
             body {
                 font-size: 13px;
@@ -92,7 +92,7 @@
             hyphens: auto;
         }
 
-        /* 移动端优化 */
+        /* Mobile optimization */
         @media (max-width: 768px) {
             .device-info-table {
                 display: block;
@@ -127,7 +127,7 @@
             }
         }
 
-        /* 超小屏幕优化 */
+        /* Optimization for ultra-small screens */
         @media (max-width: 480px) {
             .device-info-table tr {
                 padding: 6px 0;
@@ -223,6 +223,101 @@
             width: 160px;
         }
     </style>
+    <style>
+        /* Add overlay styling */
+        .card-img-overlay {
+            pointer-events: none;
+            padding: 2px 6px;
+            background: rgba(0, 0, 0, 0.7);
+            width: fit-content;
+            border-radius: 0 0 4px 0;
+            max-width: 40%;
+            height: 26px;
+            line-height: 1.2;
+        }
+        
+        .type-badge {
+            color: white;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Mobile adjustment */
+        @media (max-width: 768px) {
+            .card-img-overlay {
+                padding: 1px 4px;
+                max-width: 40%;
+                height: 19px;
+            }
+            
+            .type-badge {
+                font-size: 0.6rem;
+            }
+        }
+    </style>
+    <style>
+        /* Basic font adjustment */
+        .detail-modal-img {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .detail-metadata {
+            padding: 0 20px;
+        }
+        
+        .detail-item {
+            margin-bottom: 12px;
+        }
+        
+        .detail-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        /* Mouse style optimization */
+        .card {
+            cursor: pointer;
+        }
+    </style>
+    <style>
+        .deeplink-icon {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .deeplink-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .tooltip-custom {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Mobile optimization */
+        @media (max-width: 768px) {
+            .deeplink-icon {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .deeplink-item {
+                margin: 0 8px 8px 0;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container-fluid">
@@ -255,6 +350,22 @@
                     <div class="modal-body">
                         <div class="row g-4" id="contentContainer"></div>
                     </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add a new pop-up window to the modal part of HTML -->
+        <div class="modal fade" id="resourceDetailModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Resource Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="resourceDetailContent"></div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
@@ -349,7 +460,7 @@
 
             // Save to global variable
             lockedClientIp = clientIp;
-
+            
             return response.data.token;
         }
 
@@ -460,8 +571,25 @@
                     const $col = $('<div>').addClass('col-12 col-md-6 col-lg-4 mb-4');
                     const $card = $('<div>').addClass('card h-100 shadow-sm');
                     
+                    // Add overlay container
+                    const $overlay = $('<div>').addClass('card-img-overlay');
+                    
+                    // Parse objectType
+                    let objectType = 'N/A';
+                    try {
+                        const valueObj = JSON.parse(item.value);
+                        objectType = valueObj.objectType || 'N/A';
+                    } catch(e) {
+                        console.warn('Failed to parse value:', item.value);
+                    }
+                    
+                    $overlay.append(
+                        $('<span>').addClass('type-badge').text(objectType)
+                    );
+                    
                     // Image section
                     if (item.icon) {
+                        const $imgContainer = $('<div>').addClass('position-relative');
                         $('<img>')
                             .addClass('content-image')
                             .attr('src', item.icon)
@@ -469,7 +597,22 @@
                             .on('error', function() {
                                 $(this).attr('src', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
                             })
-                            .appendTo($card);
+                            .appendTo($imgContainer);
+                        
+                        try {
+                            const valueObj = JSON.parse(item.value);
+                            if (valueObj && valueObj.objectType) {
+                                const $overlay = $('<div>').addClass('card-img-overlay');
+                                $overlay.append(
+                                    $('<span>').addClass('type-badge').text(valueObj.objectType)
+                                );
+                                $imgContainer.append($overlay);
+                            }
+                        } catch(e) {
+                            console.warn('Failed to parse value:', item.value);
+                        }
+
+                        $card.append($imgContainer);
                     }
 
                     // Content body
@@ -485,6 +628,42 @@
                         );
                     }
 
+                    // Play source display
+                    if (item.deeplinkDetailList?.length > 0) {
+                        const $sources = $('<div>').addClass('mt-2');
+                        
+                        // Deduplication
+                        const uniqueSources = [];
+                        const seenIds = new Set();
+                        
+                        item.deeplinkDetailList.forEach(link => {
+                            if (!seenIds.has(link.sourceId)) {
+                                seenIds.add(link.sourceId);
+                                uniqueSources.push({
+                                    icon: link.sourceIcon,
+                                    name: link.sourceName
+                                });
+                            }
+                        });
+
+                        const sourcesHtml = `
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">Available On:</small>
+                                ${uniqueSources.map(source => `
+                                    <img src="${source.icon}" 
+                                         alt="${source.name}"
+                                         class="deeplink-icon"
+                                         data-bs-toggle="tooltip" 
+                                         title="${source.name}"
+                                         style="width:24px;height:24px">
+                                `).join('')}
+                            </div>
+                        `;
+
+                        $sources.html(sourcesHtml);
+                        $body.append($sources);
+                    }
+
                     // Footer info
                     const $footer = $('<div>').addClass('card-footer bg-transparent');
                     if (item.moreInfo?.videoScores) {
@@ -497,6 +676,38 @@
                     $card.append($body, $footer);
                     $col.append($card);
                     $('#contentContainer').append($col);
+
+                    // Add click event
+                    $card.click(async () => {
+                        try {
+                            // Check resource type
+                            const resType = item.rsType;
+                            if (resType !== 6 && resType !== 12) {
+                                alert('For simple types, no further information is needed.');
+                                return;
+                            }
+
+                            const detailModal = new bootstrap.Modal('#resourceDetailModal');
+                            showDetailLoading(detailModal);
+                            
+                            // Get resource details
+                            const detailData = await getResourceDetail(
+                                item.rsType,
+                                item.value
+                            );
+                            
+                            renderResourceDetail(detailData, item.rsType);
+                        } catch (error) {
+                            alert('Failed to load details: ' + error.message);
+                        }
+                    });
+                });
+
+                // Initialize Tooltip with custom configuration
+                $('[data-bs-toggle="tooltip"]').tooltip({
+                    trigger: 'hover',
+                    boundary: 'window',
+                    customClass: 'tooltip-custom'
                 });
             } catch (error) {
                 console.error('Rendering failed:', error);
@@ -524,6 +735,112 @@
                     </div>
                 </div>
             `);
+        }
+    </script>
+    <script type="text/javascript">
+        // Add new resource details related methods
+        async function getResourceDetail(resourceType, value) {
+            const encodedValue = encodeURIComponent(value);
+            const url = `https://saas.zeasn.tv/sp/api/device/v1/column/resourceDetail?token=${globalToken}&resourceType=${resourceType}&value=${encodedValue}&needPoster=true&posterWidth=1280&needAward=true`;
+            
+            const response = await $.ajax({
+                url: url,
+                method: 'GET'
+            });
+
+            if (response.errorCode !== 0) throw new Error('Failed to fetch resource details');
+            return response.data;
+        }
+
+        function showDetailLoading(modal) {
+            $('#resourceDetailContent').html(`
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-3">Loading details...</p>
+                </div>
+            `);
+            modal.show();
+        }
+
+        function renderResourceDetail(data, resourceType) {
+            const $content = $('#resourceDetailContent').empty();
+            
+            // Parse basic information
+            const baseInfo = {
+                name: data.name || 'Unknown',
+                id: data.id || 'N/A',
+                type: resourceType === 6 ? 'APP' : data.type || 'Unknown',
+                description: data.description || 'No description available'
+            };
+
+            // Get the image URL
+            let imageUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+            if (resourceType === 6 && data.icons?.[0]?.url) {
+                imageUrl = data.icons[0].url;
+            } else if (resourceType === 12 && data.covers?.[0]?.url) {
+                imageUrl = data.covers[0].url;
+            }
+
+            // Add Deeplinks Handling
+            let deeplinksHtml = '';
+            if (data.deeplinks?.length > 0) {
+                // Deduplication
+                const uniqueSources = [];
+                const seenIds = new Set();
+                
+                data.deeplinks.forEach(link => {
+                    if (!seenIds.has(link.sourceId)) {
+                        seenIds.add(link.sourceId);
+                        uniqueSources.push({
+                            icon: link.sourceIcon,
+                            name: link.sourceName
+                        });
+                    }
+                });
+
+                deeplinksHtml = `
+                    <div class="mt-4">
+                        <h6 class="detail-label">Available On</h6>
+                        <div class="d-flex flex-wrap gap-3">
+                            ${uniqueSources.map(source => `
+                                <div class="deeplink-item">
+                                    <img src="${source.icon}" 
+                                         alt="${source.name}" 
+                                         class="deeplink-icon"
+                                         data-bs-toggle="tooltip" 
+                                         title="${source.name}">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            const detailHtml = `
+                <div class="text-center">
+                    <img src="${imageUrl}" class="detail-modal-img" alt="${baseInfo.name}">
+                </div>
+                <div class="detail-metadata">
+                    <div class="detail-item">
+                        <span class="detail-label">Name:</span> ${baseInfo.name}
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">ID:</span> ${baseInfo.id}
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Type:</span> ${baseInfo.type}
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Description:</span> ${baseInfo.description}
+                    </div>
+                    ${deeplinksHtml}
+                </div>
+            `;
+
+            $content.html(detailHtml);
+
+            // Initialize Tooltip
+            $('[data-bs-toggle="tooltip"]').tooltip();
         }
     </script>
     <script>
