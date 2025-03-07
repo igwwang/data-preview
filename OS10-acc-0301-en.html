@@ -644,14 +644,26 @@
 
                     // Content body
                     const $body = $('<div>').addClass('card-body');
+                    // Title part
                     $body.append($('<h5>').addClass('card-title').text(item.name));
                     
+                    // Description part
                     if (item.briefDesc) {
                         $body.append(
                             $('<p>')
                                 .addClass('card-text text-muted')
                                 .css('font-size', '0.9em')
                                 .text(item.briefDesc)
+                        );
+                    }
+
+                    // Time display part
+                    if (item.releaseTime > 0) {
+                        $body.append(
+                            $('<p>')
+                                .addClass('card-text text-muted mt-2') // 增加 mt-2 来拉开间距
+                                .css('font-size', '0.85em')
+                                .text(`Release Time(UTC): ${formatUTCDate(item.releaseTime)}`)
                         );
                     }
 
@@ -860,6 +872,11 @@
                     <div class="detail-item">
                         <span class="detail-label">Description:</span> ${baseInfo.description}
                     </div>
+                    ${data.releaseTime > 0 ? `
+                    <div class="detail-item">
+                        <span class="detail-label">Release Time(UTC):</span> 
+                        ${formatUTCDate(data.releaseTime)}
+                    </div>` : ''}
                     ${deeplinksHtml}
                 </div>
             `;
@@ -868,6 +885,35 @@
 
             // Initialize Tooltip
             $('[data-bs-toggle="tooltip"]').tooltip();
+        }
+
+        // Time formatting tool function
+        function formatUTCDate(timestamp) {
+            if (!timestamp || timestamp <= 0) return 'N/A';
+
+            // Make sure the timestamp is a number
+            timestamp = Number(timestamp);
+
+            // If the timestamp is in seconds, convert it to milliseconds
+            if (timestamp < 1000000000000) {
+                timestamp *= 1000;
+            }
+
+            const date = new Date(timestamp);
+
+            // Check if the date is valid
+            if (isNaN(date.getTime())) {
+                console.error('Invalid timestamp:', timestamp);
+                return 'Invalid Date';
+            }
+
+            // Format date as UTC time
+            return [
+                date.getUTCFullYear(),
+                // Month starts at 0, need to add 1
+                String(date.getUTCMonth() + 1).padStart(2, '0'),
+                String(date.getUTCDate()).padStart(2, '0')
+            ].join('-');
         }
     </script>
     <script>
