@@ -35,6 +35,24 @@
                 font-size: 1em;
             }
 
+            .tree-node > .children-list:empty {
+                display: none; /* Hide empty child node containers */
+            }
+
+            .tree-node::after {
+                content: "";
+                position: absolute;
+                left: 8px;
+                top: 24px;
+                bottom: 0;
+                border-left: 2px solid #dee2e6;
+                display: var(--has-children); /* Dynamic Control */
+            }
+
+            .tree-node[data-has-children="true"]::after {
+                display: block; /* Display connection lines when there are actual child nodes */
+            }
+
             .node-content {
                 font-size: 0.9rem;
             }
@@ -435,7 +453,7 @@
                 deviceSetId: '',
                 mac: '08:00:27:91:C7:24',
                 deviceType: 'WhaleOSA_aml962_demo',
-                functionType: 'TvLauncher',
+                functionType: 'WhaleTime',
                 ifGetTvDetail: '1',
                 iconResolution: '320*180',
                 terminalType: 'TV',
@@ -479,7 +497,10 @@
         function renderTree(data) {
             const $tree = $('#dataTree').empty();
             const buildNode = (item) => {
-                const $li = $('<li>').addClass(item.children?.length ? 'tree-node' : 'tree-leaf');
+                // As long as the children array exists, it is the parent node
+                const isParentNode = Array.isArray(item.children);
+                const $li = $('<li>').addClass(isParentNode ? 'tree-node' : 'tree-leaf');
+
                 const $content = $('<div>')
                     .addClass('node-content' + (item.children?.length ? '' : ' clickable-node'))
                     .html(`
@@ -510,9 +531,9 @@
                 $li.append($content);
                 
                 // Recursive rendering
-                if (item.children?.length) {
+                if (isParentNode) {
                     const $children = $('<ul>').addClass('children-list');
-                    item.children.forEach(child => $children.append(buildNode(child)));
+                    item.children?.forEach(child => $children.append(buildNode(child)));
                     $li.append($children);
                 }
                 
