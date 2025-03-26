@@ -348,7 +348,8 @@
         <!-- Add Device Info Button -->
         <div class="device-info-header">
             <button class="btn btn-outline-primary btn-sm" id="deviceInfoBtn">
-                <i class="bi bi-pc-display"></i> Device Info
+                <i class="bi bi-pc-display"></i> 
+                Device Info - <span id="macAddressPlaceholder"></span>
             </button>
         </div>
 
@@ -416,15 +417,20 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        const DEVICE_MAC = '08:00:27:91:C7:24';
+
         let globalToken = null;
         let activeNode = null;
         // Locked Client IP
         let lockedClientIp = '';
 
         $(document).ready(async () => {
+            // Display mac
+            $('#macAddressPlaceholder').text(DEVICE_MAC);
+
             try {
                 // Initialize token
-                globalToken = await getToken();
+                globalToken = await getToken(DEVICE_MAC);
                 
                 // Fetch column data
                 const columnsData = await getColumns(globalToken);
@@ -449,7 +455,7 @@
         });
 
         // Get authentication token
-        async function getToken() {
+        async function getToken(mac) {
             // Forced to Germany
             const clientIp = '45.86.202.30';
 
@@ -457,7 +463,7 @@
                 productId: 'wm100',
                 brandId: '7',
                 deviceSetId: '',
-                mac: '08:00:27:91:C7:24',
+                mac: mac,
                 deviceType: 'WhaleOSA_aml962_demo',
                 functionType: 'WhaleTime',
                 ifGetTvDetail: '1',
@@ -893,11 +899,6 @@
 
             // Make sure the timestamp is a number
             timestamp = Number(timestamp);
-
-            // If the timestamp is in seconds, convert it to milliseconds
-            if (timestamp < 1000000000000) {
-                timestamp *= 1000;
-            }
 
             const date = new Date(timestamp);
 
