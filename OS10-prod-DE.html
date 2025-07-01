@@ -479,6 +479,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-outline-danger" id="configResetBtn">Reset</button>
                         <button type="button" class="btn btn-primary" id="configSaveBtn">Save & Reload</button>
                     </div>
                 </div>
@@ -1191,6 +1192,36 @@
             // 存储到localStorage
             localStorage.setItem('GLOBAL_PARAMS', JSON.stringify(GLOBAL_PARAMS));
             location.reload();
+        });
+        // 配置重置按钮逻辑：恢复初始参数
+        $('#configResetBtn').click(function() {
+            // 还原GLOBAL_PARAMS为初始值
+            const initial = {
+                productId: 'wtv10',
+                brandId: '7',
+                deviceSetId: '10bfa24f235519482a8b9b1c2ad7a3aef6',
+                deviceType: 'WHALEOS_ZEASN_962D4_4K_MTP_P4',
+                countryCode: 'DE',
+                langCode: 'en',
+                mac: '18:84:c1:f4:2c:60',
+                functionType: 'TvLauncher',
+                ifGetTvDetail: '1',
+                iconResolution: '320*180',
+                terminalType: 'TV',
+                sn: '',
+                appVersion: '20000043',
+                androidVersion: '13',
+                osType: 'WhaleOSA',
+                clientIp: '217.111.87.254'
+            };
+            Object.assign(GLOBAL_PARAMS, initial);
+            // 更新表单显示
+            $('#configForm input').each(function() {
+                const key = $(this).attr('name');
+                if (key in initial) $(this).val(initial[key]);
+            });
+            // 清除localStorage
+            localStorage.removeItem('GLOBAL_PARAMS');
         });
         // 页面加载时优先读取localStorage参数
         (function restoreConfig() {
