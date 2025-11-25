@@ -397,6 +397,18 @@
                     <i class="bi bi-stars"></i> 
                     Personalized recommendations
                 </button>
+                <button class="btn btn-outline-info btn-sm" id="videoTypeRecommendBtn">
+                    <i class="bi bi-film"></i> 
+                    Banner AD Recommendation
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" id="newPersonalizedRecommendBtn">
+                    <i class="bi bi-person-check"></i> 
+                    New Personalized recommendations
+                </button>
+                <button class="btn btn-outline-warning btn-sm" id="configBtn">
+                    <i class="bi bi-gear"></i>
+                    Configuration
+                </button>
             </div>
         </div>
 
@@ -455,6 +467,28 @@
                     </div>
                     <div class="modal-body">
                         <div id="deviceInfoContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Modal -->
+        <div class="modal fade" id="configModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Device Configuration</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="configForm">
+                            <div id="configFormFields" class="row g-3"></div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-outline-danger" id="configResetBtn">Reset</button>
+                        <button type="button" class="btn btn-primary" id="configSaveBtn">Save & Reload</button>
                     </div>
                 </div>
             </div>
@@ -1137,6 +1171,176 @@
                 bootstrap.Modal.getInstance('#contentModal').hide();
             }
         });
+
+        // Video Type Recommendation
+        $('#videoTypeRecommendBtn').click(async () => {
+            try {
+                const modal = new bootstrap.Modal('#contentModal');
+                showLoading(modal);
+                
+                const response = await $.ajax({
+                    url: `https://acc-saas.zeasn.tv/sp/api/device/v1/video/recommend/ad?token=${globalToken}&searchType=REC_CHANNEL&size=1&scopeId=1&typeWeight=100&supportAD=true&moreFields=description,tags,source,background,cover&posterShape&posterWidth&posterHeight&iconShape&iconWidth&iconHeight&userToken=${globalUserToken}`,
+                    method: 'GET'
+                });
+
+                if (response.errorCode !== 0 || !response.data) {
+                    throw new Error('Failed to obtain banner AD recommendation content');
+                }
+
+                // Adapting data structure
+                const wrappedData = {
+                    content: {
+                        name: "Banner AD Recommendation",
+                        dataList: response.data.map(item => ({
+                            ...item,
+                            icon: item.moreInfo?.cover,
+                            briefDesc: item.moreInfo?.description,
+                            rsType: 12,
+                            deeplinkDetailList: item.moreInfo?.source ? [{
+                                sourceIcon: item.moreInfo.source.sourceIcon,
+                                sourceName: item.moreInfo.source.name || 'Unknown Source',
+                                sourceId: item.moreInfo.source.sourceId || '0'
+                            }] : []
+                        }))
+                    }
+                };
+
+                await renderModalContent(wrappedData, modal);
+            } catch (error) {
+                alert('Failed to load banner AD recommendation content: ' + error.message);
+                bootstrap.Modal.getInstance('#contentModal').hide();
+            }
+        });
+
+        // New Personalized recommendations
+        $('#newPersonalizedRecommendBtn').click(async () => {
+            try {
+                const modal = new bootstrap.Modal('#contentModal');
+                showLoading(modal);
+                
+                const response = await $.ajax({
+                    url: `https://acc-saas.zeasn.tv/sp/api/device/v1/video/recommend/choices?token=${globalToken}&objectTypes=REC_CHANNEL,REC_PROGRAM,MOVIE,SEASON&size=30&moreFields=description,backgroud,releaseTime,categories,scores,contributors,bindSource,views,source,tags,rating,defaultLangCode,updateTime,series,seasonNumber,episodeCount,duration,liveStartTime,liveEndTime,liveState&posterShape&posterWidth&posterHeight&iconShape=HORIZONTAL&iconWidth&iconHeight&userToken=${globalUserToken}`,
+                    method: 'GET'
+                });
+
+                if (response.errorCode !== 0 || !response.data) {
+                    throw new Error('Failed to obtain new personalized recommendation content');
+                }
+
+                // Adapting data structure
+                const wrappedData = {
+                    content: {
+                        name: "New Personalized recommendations",
+                        dataList: response.data.map(item => ({
+                            ...item.movieInfo,
+                            icon: item.movieInfo?.cover,
+                            briefDesc: item.movieInfo?.moreInfo?.description,
+                            releaseTime: item.movieInfo?.moreInfo?.releaseTime,
+                            value: item.value,
+                            rsType: item.rsType,
+                            deeplinkDetailList: item.movieInfo?.deeplink ? [{
+                                sourceIcon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+                                sourceName: item.movieInfo.moreInfo?.source?.name || 'Unknown Source',
+                                sourceId: item.movieInfo.moreInfo?.source?.sourceId || '0'
+                            }] : []
+                        }))
+                    }
+                };
+
+                await renderModalContent(wrappedData, modal);
+            } catch (error) {
+                alert('Failed to load new personalized recommendation content: ' + error.message);
+                bootstrap.Modal.getInstance('#contentModal').hide();
+            }
+        });
+
+        // Configuration Modal Logic
+        const CONFIG_KEYS = Object.keys(GLOBAL_PARAMS);
+        // 打开配置弹窗并渲染表单
+        $('#configBtn').click(function() {
+            const $fields = $('#configFormFields').empty();
+            CONFIG_KEYS.forEach(key => {
+                let value = GLOBAL_PARAMS[key];
+                // 只显示注释外的参数
+                if (typeof value === 'undefined') return;
+                $fields.append(`
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-bold">${key}</label>
+                        <input type="text" class="form-control" name="${key}" value="${value ?? ''}">
+                    </div>
+                `);
+            });
+            const modal = new bootstrap.Modal('#configModal');
+            modal.show();
+        });
+        // 保存配置并刷新页面
+        $('#configSaveBtn').click(function() {
+            const formArr = $('#configForm').serializeArray();
+            formArr.forEach(({name, value}) => {
+                GLOBAL_PARAMS[name] = value;
+            });
+            // 存储到localStorage
+            localStorage.setItem('GLOBAL_PARAMS', JSON.stringify(GLOBAL_PARAMS));
+            location.reload();
+        });
+        // 配置重置按钮逻辑：恢复初始参数
+        $('#configResetBtn').click(function() {
+            // 还原GLOBAL_PARAMS为初始值
+            const initial = {
+                productId: 'wtv10',
+                brandId: '7',
+                deviceSetId: '10bfa24f235519482a8b9b1c2ad7a3aef6',
+                deviceType: 'WHALEOS_ZEASN_962D4_4K_MTP_P15',
+                countryCode: 'US',
+                langCode: 'en',
+                mac: 'e8:51:9e:28:c7:4c',
+                functionType: 'TvLauncher',
+                ifGetTvDetail: '1',
+                iconResolution: '320*180',
+                terminalType: 'TV',
+                sn: '',
+                appVersion: '20000018',
+                androidVersion: '13',
+                osType: 'WhaleOSA',
+                clientIp: '122.10.101.131'
+            };
+            Object.assign(GLOBAL_PARAMS, initial);
+            // 更新表单显示
+            $('#configForm input').each(function() {
+                const key = $(this).attr('name');
+                if (key in initial) $(this).val(initial[key]);
+            });
+            // 清除localStorage
+            localStorage.removeItem('GLOBAL_PARAMS');
+        });
+        // 页面加载时优先读取localStorage参数
+        (function restoreConfig() {
+            const saved = localStorage.getItem('GLOBAL_PARAMS');
+            if (saved) {
+                try {
+                    const obj = JSON.parse(saved);
+                    Object.assign(GLOBAL_PARAMS, obj);
+                } catch(e) {}
+            }
+        })();
+
+        // 单元测试（简单示例，QUnit）
+        (function(){
+            if (!window.QUnit) return;
+            QUnit.module('Configuration Modal');
+            QUnit.test('Should open and save config', function(assert) {
+                $('#configBtn').click();
+                assert.ok($('#configModal').hasClass('show') || $('#configModal').is(':visible'), 'Config modal opened');
+                const $firstInput = $('#configForm input').first();
+                const oldVal = $firstInput.val();
+                $firstInput.val('testValue');
+                $('#configSaveBtn').click();
+                setTimeout(function() {
+                    const saved = JSON.parse(localStorage.getItem('GLOBAL_PARAMS'));
+                    assert.equal(saved[$firstInput.attr('name')], 'testValue', 'Config saved to localStorage');
+                }, 100);
+            });
+        })();
     </script>
 </body>
 </html>
