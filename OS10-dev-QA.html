@@ -620,7 +620,11 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const GLOBAL_PARAMS = {
+        // API基础URL常量
+        const API_BASE_URL = 'https://dev-saas.zeasn.tv';
+
+        // 默认配置常量
+        const DEFAULT_PARAMS = {
             productId: 'wtv10',
             brandId: '7',
             deviceSetId: '10bfa24f235519482a8b9b1c2ad7a3aef6',
@@ -642,6 +646,9 @@
             // clientIp: '8.34.210.0'  // USA
         };
 
+        // 运行时全局参数（从默认值复制）
+        const GLOBAL_PARAMS = { ...DEFAULT_PARAMS };
+
         const ACCESS_KEY = '10353c6d999f4141bbb35dcc70ed08e0e6';  // Get from the platform
         const SECRET_KEY = '10e643bd7c7df54073ab333c6309926337';  // Get from the platform
 
@@ -650,6 +657,8 @@
         let activeNode = null;
         // Locked Client IP
         let lockedClientIp = '';
+        // Download management
+        let activeDownloadRequest = null;
         
         // Replace URL bracket parameters with random strings
         function replaceBracketParams(url) {
@@ -841,19 +850,34 @@
                 deviceName: ''
             });
 
-            const response = await $.ajax({
-                url: 'https://dev-saas.zeasn.tv/user/device/login',
-                method: 'POST',
-                headers: {
-                    'Authorization': generateAuthorizationHeader('/user/device/login'),
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                data: params.toString(),
-                processData: false
-            });
+            try {
+                const response = await $.ajax({
+                    url: `${API_BASE_URL}/user/device/login`,
+                    method: 'POST',
+                    headers: {
+                        'Authorization': generateAuthorizationHeader('/user/device/login'),
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    data: params.toString(),
+                    processData: false
+                });
 
-            if (response.errorCode !== "0") throw new Error('Failed to get user token');
-            return response.data.userToken;
+                if (response.errorCode !== "0") {
+                    const error = new Error('Failed to get user token');
+                    error.errorCode = response.errorCode;
+                    error.errorMsg = response.errorMsg || response.message;
+                    throw error;
+                }
+                return response.data.userToken;
+            } catch (jqXHR) {
+                if (jqXHR.responseJSON) {
+                    const error = new Error(jqXHR.responseJSON.errorMsg || 'API Error');
+                    error.errorCode = jqXHR.responseJSON.errorCode;
+                    error.errorMsg = jqXHR.responseJSON.errorMsg;
+                    throw error;
+                }
+                throw jqXHR;
+            }
         }
 
         $(document).ready(async () => {
@@ -889,6 +913,15 @@
                     activeNode = null;
                 }
             });
+            
+            // Cancel active downloads when resource detail modal closes
+            $('#resourceDetailModal').on('hidden.bs.modal', () => {
+                if (activeDownloadRequest) {
+                    console.log('Modal closed, cancelling active download...');
+                    activeDownloadRequest.abort();
+                    activeDownloadRequest = null;
+                }
+            });
         });
 
         // Get authentication token
@@ -897,26 +930,41 @@
                 ...GLOBAL_PARAMS
             });
 
-            const response = await $.ajax({
-                url: 'https://dev-saas.zeasn.tv/auth-api/api/v1/auth/deviceSign',
-                method: 'POST',
-                contentType: 'application/x-www-form-urlencoded',
-                data: params.toString(),
-                processData: false
-            });
+            try {
+                const response = await $.ajax({
+                    url: `${API_BASE_URL}/auth-api/api/v1/auth/deviceSign`,
+                    method: 'POST',
+                    contentType: 'application/x-www-form-urlencoded',
+                    data: params.toString(),
+                    processData: false
+                });
 
-            if (response.errorCode !== "0") throw new Error('Failed to get token');
+                if (response.errorCode !== "0") {
+                    const error = new Error('Failed to get token');
+                    error.errorCode = response.errorCode;
+                    error.errorMsg = response.errorMsg || response.message;
+                    throw error;
+                }
 
-            // Save to global variable
-            lockedClientIp = GLOBAL_PARAMS.clientIp;
-            
-            return response.data.token;
+                // Save to global variable
+                lockedClientIp = GLOBAL_PARAMS.clientIp;
+                
+                return response.data.token;
+            } catch (jqXHR) {
+                if (jqXHR.responseJSON) {
+                    const error = new Error(jqXHR.responseJSON.errorMsg || 'API Error');
+                    error.errorCode = jqXHR.responseJSON.errorCode;
+                    error.errorMsg = jqXHR.responseJSON.errorMsg;
+                    throw error;
+                }
+                throw jqXHR;
+            }
         }
 
         // Fetch column data
         async function getColumns(token) {
             const response = await $.ajax({
-                url: `https://dev-saas.zeasn.tv/sp/api/device/v1/column?token=${token}`,
+                url: `${API_BASE_URL}/sp/api/device/v1/column?token=${token}`,
                 method: 'GET'
             });
 
@@ -980,7 +1028,7 @@
         // Fetch column content
         async function getColumnContent(columnId) {
             const response = await $.ajax({
-                url: `https://dev-saas.zeasn.tv/sp/api/device/v1/column/content?token=${globalToken}&columnIds=${columnId}`,
+                url: `${API_BASE_URL}/sp/api/device/v1/column/content?token=${globalToken}&columnIds=${columnId}`,
                 method: 'GET'
             });
 
@@ -1203,10 +1251,17 @@
         // Error handling
         function handleError(error) {
             console.error('System error:', error);
+            
+            let errorCode = error.errorCode || 'N/A';
+            let errorMsg = error.errorMsg || error.message || 'Unknown error';
+            
             $('#loading').html(`
                 <div class="alert alert-danger" style="max-width: 500px;">
                     <h4 class="alert-heading">Initialization Failed</h4>
-                    <p>${error.message || 'Unknown error'}</p>
+                    <p class="mb-2">${errorMsg}</p>
+                    <div class="bg-light p-2 rounded mb-3">
+                        <small class="text-danger fw-bold">Error Code: ${errorCode}</small>
+                    </div>
                     <hr>
                     <div class="d-grid gap-2">
                         <button class="btn btn-outline-primary" onclick="location.reload()">
@@ -1221,7 +1276,7 @@
         // Add new resource details related methods
         async function getResourceDetail(resourceType, value) {
             const encodedValue = encodeURIComponent(value);
-            const url = `https://dev-saas.zeasn.tv/sp/api/device/v1/column/resourceDetail?token=${globalToken}&resourceType=${resourceType}&value=${encodedValue}&needPoster=true&posterWidth=1280&needAward=true`;
+            const url = `${API_BASE_URL}/sp/api/device/v1/column/resourceDetail?token=${globalToken}&resourceType=${resourceType}&value=${encodedValue}&needPoster=true&posterWidth=1280&needAward=true`;
             
             const response = await $.ajax({
                 url: url,
@@ -1296,6 +1351,27 @@
                 `;
             }
 
+            // Add download button if pkg is not empty
+            let downloadButtonHtml = '';
+            if (data.pkg && data.pkg.trim() !== '' && data.vsId) {
+                downloadButtonHtml = `
+                    <div class="mt-4 text-center">
+                        <button class="btn btn-primary" id="downloadAppBtn" data-vs-id="${data.vsId}">
+                            <i class="bi bi-download"></i> Download App
+                        </button>
+                        <div id="downloadProgress" class="mt-3" style="display: none;">
+                            <div class="progress mb-2">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between small text-muted">
+                                <span id="downloadSpeed">0 KB/s</span>
+                                <span id="downloadSize">0 / 0 MB</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
             const detailHtml = `
                 <div class="text-center">
                     <img src="${imageUrl}" class="detail-modal-img" alt="${baseInfo.name}">
@@ -1319,10 +1395,139 @@
                         ${formatUTCDate(data.releaseTime)}
                     </div>` : ''}
                     ${deeplinksHtml}
+                    ${downloadButtonHtml}
                 </div>
             `;
 
             $content.html(detailHtml);
+
+            // Add download button click handler
+            $('#downloadAppBtn').click(function() {
+                const vsId = $(this).data('vs-id');
+                const $btn = $(this);
+                const originalText = $btn.html();
+                const $progress = $('#downloadProgress');
+                const $progressBar = $('.progress-bar');
+                const $speed = $('#downloadSpeed');
+                const $size = $('#downloadSize');
+                
+                let startTime = Date.now();
+                
+                try {
+                    $btn.prop('disabled', true).html('<i class="bi bi-hourglass-split"></i> Preparing...');
+                    
+                    const downloadUrl = `${API_BASE_URL}/sp/api/device/v1/app/download?token=${globalToken}&vsId=${vsId}`;
+                    
+                    // Use jQuery AJAX with custom XMLHttpRequest for progress tracking
+                    activeDownloadRequest = $.ajax({
+                        url: downloadUrl,
+                        method: 'GET',
+                        xhr: function() {
+                            const xhr = new XMLHttpRequest();
+                            
+                            // Track download progress
+                            xhr.addEventListener('progress', function(e) {
+                                if (e.lengthComputable) {
+                                    const percent = Math.round((e.loaded / e.total) * 100);
+                                    const totalMB = (e.total / 1024 / 1024).toFixed(1);
+                                    const loadedMB = (e.loaded / 1024 / 1024).toFixed(1);
+                                    
+                                    // Update progress bar
+                                    $progressBar.css('width', percent + '%').attr('aria-valuenow', percent);
+                                    
+                                    // Calculate speed
+                                    const elapsed = (Date.now() - startTime) / 1000;
+                                    const speed = e.loaded / elapsed;
+                                    let speedText;
+                                    if (speed > 1024 * 1024) {
+                                        speedText = (speed / 1024 / 1024).toFixed(1) + ' MB/s';
+                                    } else {
+                                        speedText = (speed / 1024).toFixed(0) + ' KB/s';
+                                    }
+                                    
+                                    $speed.text(speedText);
+                                    $size.text(`${loadedMB} / ${totalMB} MB`);
+                                }
+                            });
+                            
+                            return xhr;
+                        },
+                        xhrFields: {
+                            responseType: 'blob'
+                        },
+                        beforeSend: function() {
+                            $progress.show();
+                            $btn.html('<i class="bi bi-download"></i> Downloading...');
+                            startTime = Date.now();
+                        },
+                        success: function(data, textStatus, xhr) {
+                            // Clear active request reference
+                            activeDownloadRequest = null;
+                            
+                            // Handle blob response directly
+                            const blob = new Blob([data]);
+                            const url = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = `app_${vsId}.apk`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            window.URL.revokeObjectURL(url);
+                            
+                            $btn.html('<i class="bi bi-check-circle"></i> Downloaded!');
+                            setTimeout(() => {
+                                $btn.prop('disabled', false).html(originalText);
+                                $progress.hide();
+                                $progressBar.css('width', '0%');
+                            }, 3000);
+                        },
+                        error: function(xhr, status, error) {
+                            // Clear active request reference
+                            activeDownloadRequest = null;
+                            
+                            // Handle user cancellation
+                            if (status === 'abort') {
+                                console.log('Download cancelled by user');
+                                $btn.html('<i class="bi bi-x-circle"></i> Cancelled');
+                                setTimeout(() => {
+                                    $btn.prop('disabled', false).html(originalText);
+                                    $progress.hide();
+                                    $progressBar.css('width', '0%');
+                                }, 2000);
+                                return;
+                            }
+                            
+                            // Handle redirect responses
+                            if (xhr.status === 302 || xhr.status === 301) {
+                                const location = xhr.getResponseHeader('Location');
+                                if (location) {
+                                    // Open download URL in new tab
+                                    window.open(location, '_blank');
+                                    $btn.html('<i class="bi bi-check-circle"></i> Download Started!');
+                                    setTimeout(() => {
+                                        $btn.prop('disabled', false).html(originalText);
+                                        $progress.hide();
+                                    }, 3000);
+                                    return;
+                                }
+                            }
+                            
+                            console.error('Download error:', error);
+                            alert('Download failed: ' + (error || 'Network error'));
+                            $btn.prop('disabled', false).html(originalText);
+                            $progress.hide();
+                        }
+                    });
+                    
+                } catch (error) {
+                    console.error('Download error:', error);
+                    alert('Download failed: ' + error.message);
+                    $btn.prop('disabled', false).html(originalText);
+                    $progress.hide();
+                    activeDownloadRequest = null;
+                }
+            });
 
             // Initialize Tooltip
             $('[data-bs-toggle="tooltip"]').tooltip();
@@ -1629,7 +1834,7 @@
                 modal.show();
                 
                 const response = await $.ajax({
-                    url: `https://dev-saas.zeasn.tv/sp/api/device/v1/column/tokenDetail?token=${globalToken}`,
+                    url: `${API_BASE_URL}/sp/api/device/v1/column/tokenDetail?token=${globalToken}`,
                     method: 'GET'
                 });
 
@@ -1722,7 +1927,7 @@
                 showLoading(modal);
                 
                 const response = await $.ajax({
-                    url: `https://dev-saas.zeasn.tv/sp/api/device/v1/video/recommend?token=${globalToken}&userToken=${globalUserToken}&videoType=MOVIE&size=30&needPoster=true&imgStyle=0&imgWidth=800`,
+                    url: `${API_BASE_URL}/sp/api/device/v1/video/recommend?token=${globalToken}&userToken=${globalUserToken}&videoType=MOVIE&size=30&needPoster=true&imgStyle=0&imgWidth=800`,
                     method: 'GET'
                 });
 
@@ -1757,7 +1962,7 @@
                 showLoading(modal);
                 
                 const response = await $.ajax({
-                    url: `https://dev-saas.zeasn.tv/sp/api/device/v1/video/recommend/ad?token=${globalToken}&searchType=REC_CHANNEL&size=1&scopeId=1&typeWeight=100&supportAD=true&moreFields=description,tags,source,background,cover&posterShape&posterWidth&posterHeight&iconShape&iconWidth&iconHeight&userToken=${globalUserToken}`,
+                    url: `${API_BASE_URL}/sp/api/device/v1/video/recommend/ad?token=${globalToken}&searchType=REC_CHANNEL&size=1&scopeId=1&typeWeight=100&supportAD=true&moreFields=description,tags,source,background,cover&posterShape&posterWidth&posterHeight&iconShape&iconWidth&iconHeight&userToken=${globalUserToken}`,
                     method: 'GET'
                 });
 
@@ -1798,7 +2003,7 @@
                 showLoading(modal);
                 
                 const response = await $.ajax({
-                    url: `https://dev-saas.zeasn.tv/sp/api/device/v1/video/recommend/choices?token=${globalToken}&objectTypes=REC_CHANNEL,REC_PROGRAM,MOVIE,SEASON&size=30&moreFields=description,backgroud,releaseTime,categories,scores,contributors,bindSource,views,source,tags,rating,defaultLangCode,updateTime,series,seasonNumber,episodeCount,duration,liveStartTime,liveEndTime,liveState&posterShape&posterWidth&posterHeight&iconShape=HORIZONTAL&iconWidth&iconHeight&userToken=${globalUserToken}`,
+                    url: `${API_BASE_URL}/sp/api/device/v1/video/recommend/choices?token=${globalToken}&objectTypes=REC_CHANNEL,REC_PROGRAM,MOVIE,SEASON&size=30&moreFields=description,backgroud,releaseTime,categories,scores,contributors,bindSource,views,source,tags,rating,defaultLangCode,updateTime,series,seasonNumber,episodeCount,duration,liveStartTime,liveEndTime,liveState&posterShape&posterWidth&posterHeight&iconShape=HORIZONTAL&iconWidth&iconHeight&userToken=${globalUserToken}`,
                     method: 'GET'
                 });
 
@@ -1932,7 +2137,7 @@
         });
 
         // Configuration Modal Logic
-        const CONFIG_KEYS = Object.keys(GLOBAL_PARAMS);
+        const CONFIG_KEYS = Object.keys(DEFAULT_PARAMS);
         // 打开配置弹窗并渲染表单
         $('#configBtn').click(function() {
             const $fields = $('#configFormFields').empty();
@@ -1962,30 +2167,12 @@
         });
         // 配置重置按钮逻辑：恢复初始参数
         $('#configResetBtn').click(function() {
-            // 还原GLOBAL_PARAMS为初始值
-            const initial = {
-                productId: 'wtv10',
-                brandId: '7',
-                deviceSetId: '10bfa24f235519482a8b9b1c2ad7a3aef6',
-                deviceType: 'WHALEOS10_Zeasn_Test_AML962D4',
-                countryCode: 'US',
-                langCode: 'en',
-                mac: 'e8:51:9e:28:c7:4c',
-                functionType: 'TvLauncher',
-                ifGetTvDetail: '1',
-                iconResolution: '320*180',
-                terminalType: 'TV',
-                sn: '',
-                appVersion: '20000018',
-                androidVersion: '13',
-                osType: 'WhaleOSA',
-                clientIp: '122.10.101.131'
-            };
-            Object.assign(GLOBAL_PARAMS, initial);
+            // 还原GLOBAL_PARAMS为默认值
+            Object.assign(GLOBAL_PARAMS, DEFAULT_PARAMS);
             // 更新表单显示
             $('#configForm input').each(function() {
                 const key = $(this).attr('name');
-                if (key in initial) $(this).val(initial[key]);
+                if (key in DEFAULT_PARAMS) $(this).val(DEFAULT_PARAMS[key]);
             });
             // 清除localStorage
             localStorage.removeItem('GLOBAL_PARAMS');
