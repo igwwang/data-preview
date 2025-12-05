@@ -1962,7 +1962,7 @@
                 showLoading(modal);
                 
                 const response = await $.ajax({
-                    url: `${API_BASE_URL}/sp/api/device/v1/video/recommend/ad?token=${globalToken}&searchType=REC_CHANNEL&size=1&scopeId=1&typeWeight=100&supportAD=true&moreFields=description,tags,source,background,cover&posterShape&posterWidth&posterHeight&iconShape&iconWidth&iconHeight&userToken=${globalUserToken}`,
+                    url: `${API_BASE_URL}/sp/api/device/v1/video/recommend/ad?token=${globalToken}&searchType=REC_CHANNEL,VOD&size=1&scopeId=3&typeWeight=100,100&supportAD=true&moreFields=description,tags,source,background,cover&posterShape&posterWidth&posterHeight&iconShape&iconWidth&iconHeight&position=LAUNCHER&userToken=${globalUserToken}`,
                     method: 'GET'
                 });
 
