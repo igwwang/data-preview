@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Data PROD-DE</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Add Icon Library -->
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"> -->
+    <!-- Add the CryptoJS library in the <head> section -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        /* Basic font adjustment */
+        body {
+            font-size: 16px;
+        }
+
+        /* Desktop default style */
+        .card-title {
+            font-size: 1.1rem;
+        }
+        
+        .card-text {
+            font-size: 0.95rem;
+        }
+
+        .device-info-table td {
+            font-size: 0.9rem;
+        }
+
+        /* Mobile devices adaptation */
+        @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+
+            .tree-node::before,
+            .tree-leaf::before {
+                font-size: 1em;
+            }
+
+            .tree-node > .children-list:empty {
+                display: none; /* Hide empty child node containers */
+            }
+
+            .tree-node::after {
+                content: "";
+                position: absolute;
+                left: 8px;
+                top: 24px;
+                bottom: 0;
+                border-left: 2px solid #dee2e6;
+                display: var(--has-children); /* Dynamic Control */
+            }
+
+            .tree-node[data-has-children="true"]::after {
+                display: block; /* Display connection lines when there are actual child nodes */
+            }
+
+            .node-content {
+                font-size: 0.9rem;
+            }
+
+            .card-title {
+                font-size: 1rem;
+            }
+
+            .card-text {
+                font-size: 0.85rem;
+            }
+
+            .device-info-table td {
+                font-size: 0.8rem;
+            }
+
+            .btn {
+                font-size: 0.85rem;
+                padding: 0.25rem 0.5rem;
+            }
+
+            .modal-title {
+                font-size: 1.1rem;
+            }
+
+            /* Adjust the tree structure indentation */
+            .children-list {
+                margin-left: 15px;
+                padding-left: 10px;
+            }
+        }
+
+        /* Optimization for ultra-small screens */
+        @media (max-width: 480px) {
+            body {
+                font-size: 13px;
+            }
+
+            .node-content {
+                padding: 6px 10px;
+            }
+
+            .device-info-table td:first-child {
+                min-width: 120px;
+            }
+        }
+        .device-info-table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .device-info-table td {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+        }
+
+        /* Mobile optimization */
+        @media (max-width: 768px) {
+            .device-info-table {
+                display: block;
+            }
+
+            .device-info-table tbody {
+                display: block;
+            }
+
+            .device-info-table tr {
+                display: flex;
+                flex-direction: column;
+                padding: 8px 0;
+                border-bottom: 1px solid #dee2e6;
+            }
+
+            .device-info-table td {
+                display: block;
+                padding: 4px 0;
+                min-width: auto !important;
+                width: 100% !important;
+            }
+
+            .device-info-table td:first-child {
+                font-weight: 600;
+                color: #666;
+                padding-bottom: 2px;
+            }
+
+            .device-info-table td:last-child {
+                padding-top: 2px;
+            }
+        }
+
+        /* Optimization for ultra-small screens */
+        @media (max-width: 480px) {
+            .device-info-table tr {
+                padding: 6px 0;
+            }
+
+            .device-info-table td {
+                font-size: 0.8rem;
+            }
+        }
+        /* Tree structure styling */
+        .tree-container {
+            padding: 20px;
+            margin: 0 auto;
+        }
+        .tree-node {
+            list-style: none;
+            padding-left: 25px;
+            position: relative;
+            margin: 5px 0;
+            transition: all 0.2s ease;
+        }
+        .tree-node::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 4px;
+            width: 18px;
+            height: 18px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236c757d'%3E%3Cpath d='M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z'/%3E%3C/svg%3E");
+        }
+        .tree-leaf::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 4px;
+            width: 18px;
+            height: 18px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234a90e2'%3E%3Cpath d='M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z'/%3E%3C/svg%3E");
+        }
+        .node-content {
+            padding: 8px 15px;
+            margin: 3px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+        }
+        .clickable-node:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+            cursor: pointer;
+        }
+        .children-list {
+            margin-left: 25px;
+            border-left: 2px solid #dee2e6;
+            padding-left: 15px;
+        }
+
+        /* Image styling */
+        .content-image {
+            width: 100%;
+            height: auto;
+            border-radius: 5px 5px 0 0;
+        }
+
+        /* Loading state */
+        #loading {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Active node highlight */
+        .active-node {
+            background: #e7f1ff !important;
+            box-shadow: 0 0 8px rgba(0,123,255,0.1);
+        }
+
+        /* Custom modal width */
+        @media (min-width: 992px) {
+            .custom-modal {
+                max-width: 900px;
+            }
+        }
+
+        /* Add device info button styling */
+        .device-info-header {
+            padding: 20px 34px 10px 34px;
+            margin: 0 auto;
+        }
+        .device-info-table td {
+            padding: 8px 12px;
+            vertical-align: top;
+        }
+        .device-info-table td:first-child {
+            font-weight: 500;
+            min-width: 130px;
+            width: 160px;
+        }
+        /* Force left alignment */
+        .device-info-header .d-flex {
+            justify-content: flex-start !important;
+            margin-right: auto !important;
+        }
+
+        /* Remove the default right margin of the button */
+        .device-info-header .btn {
+            margin-right: 0;
+            margin-left: 0;
+        }
+    </style>
+    <style>
+        /* Add overlay styling */
+        .card-img-overlay {
+            pointer-events: none;
+            padding: 2px 6px;
+            background: rgba(0, 0, 0, 0.7);
+            width: fit-content;
+            border-radius: 0 0 4px 0;
+            max-width: 40%;
+            height: 26px;
+            line-height: 1.2;
+        }
+        
+        .type-badge {
+            color: white;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Mobile adjustment */
+        @media (max-width: 768px) {
+            .card-img-overlay {
+                padding: 1px 4px;
+                max-width: 40%;
+                height: 19px;
+            }
+            
+            .type-badge {
+                font-size: 0.6rem;
+            }
+        }
+    </style>
+    <style>
+        /* Basic font adjustment */
+        .detail-modal-img {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .detail-metadata {
+            padding: 0 20px;
+        }
+        
+        .detail-item {
+            margin-bottom: 12px;
+        }
+        
+        .detail-label {
+            font-weight: 500;
+            color: #666;
+        }
+
+        /* Mouse style optimization */
+        .card {
+            cursor: pointer;
+        }
+    </style>
+    <style>
+        .deeplink-icon {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .deeplink-icon:hover {
+            transform: scale(1.1);
+        }
+
+        .tooltip-custom {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Mobile optimization */
+        @media (max-width: 768px) {
+            .deeplink-icon {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .deeplink-item {
+                margin: 0 8px 8px 0;
+            }
+        }
+
+        /* Token display optimization */
+        #tokenDisplay {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        #tokenDisplay.copied::after {
+            content: "✓ Copied!";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(40, 167, 69, 0.9);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Add Device Info Button -->
+        <div class="device-info-header">
+            <div class="d-flex gap-2 flex-wrap justify-content-start"> <!-- Add justify-content-start -->        
+                <button class="btn btn-outline-success btn-sm" id="tokenDisplay">
+                    <i class="bi bi-clipboard"></i> 
+                    <span class="text-truncate" style="max-width: 150px;" id="tokenText">Click to Copy Token</span>
+                </button>
+                <button class="btn btn-outline-primary btn-sm" id="deviceInfoBtn">
+                    <i class="bi bi-pc-display"></i> 
+                    Device Info
+                </button>
+                <button class="btn btn-outline-primary btn-sm" id="recommendBtn">
+                    <i class="bi bi-stars"></i> 
+                    Personalized recommendations
+                </button>
+                <button class="btn btn-outline-warning btn-sm" id="configBtn">
+                    <i class="bi bi-gear"></i>
+                    Configuration
+                </button>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12 tree-container">
+                <div id="loading">
+                    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div id="dataTree" class="d-none"></div>
+            </div>
+        </div>
+
+        <!-- Content Modal -->
+        <div class="modal fade" id="contentModal" tabindex="-1">
+            <div class="modal-dialog custom-modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalTitle"></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-4" id="contentContainer"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add a new pop-up window to the modal part of HTML -->
+        <div class="modal fade" id="resourceDetailModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Resource Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="resourceDetailContent"></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Device Info Modal -->
+        <div class="modal fade" id="deviceInfoModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Device Information</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="deviceInfoContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Modal -->
+        <div class="modal fade" id="configModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Device Configuration</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="configForm">
+                            <div id="configFormFields" class="row g-3"></div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-outline-danger" id="configResetBtn">Reset</button>
+                        <button type="button" class="btn btn-primary" id="configSaveBtn">Save & Reload</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const GLOBAL_PARAMS = {
+            productId: 'wtv10',
+            brandId: '19',
+            deviceSetId: '10bfa24f235519482a8b9b1c2ad7a3aef6',
+            deviceType: 'WHALEOS_CTV_KTC_AML950D4_2K_MTP_P31',
+            countryCode: 'US',
+            langCode: 'en',
+            mac: 'A8%3A2C%3A3E%3A72%3AEC%3A4C',
+            functionType: 'TvLauncher',
+            ifGetTvDetail: '1',
+            iconResolution: '320*180',
+            terminalType: 'TV',
+            sn: '',
+            appVersion: '2000800',
+            androidVersion: '13',
+            osType: 'AOSP',
+            // clientIp: '45.154.138.26'  // France
+            clientIp: '34.106.208.213'  // US
+            // clientIp: '122.10.101.131'  // Hong Kong
+        };
+
+        const ACCESS_KEY = '12205c45d719594b2c88c76c0ff4df13c2';  // Get from the platform
+        const SECRET_KEY = '12d9b9ae08be0542e7898d24de30c5d648';  // Get from the platform
+
+        let globalToken = null;
+        let globalUserToken = null;  // Add user token storage
+        let activeNode = null;
+        // Locked Client IP
+        let lockedClientIp = '';
+
+        // Signature generation function
+        function generateAuthorizationHeader(requestPath) {
+            const ts = Date.now().toString();
+            const encryptStr = requestPath + ts;
+            const signature = CryptoJS.HmacSHA1(encryptStr, SECRET_KEY);
+            return `${ACCESS_KEY}:${CryptoJS.enc.Base64.stringify(signature)}:${ts}`;
+        }
+
+        // Get user token
+        async function getUserToken() {
+            const params = new URLSearchParams({
+                productId: GLOBAL_PARAMS.productId,
+                brandId: GLOBAL_PARAMS.brandId,
+                deviceSetId: '',
+                mac: GLOBAL_PARAMS.mac,
+                deviceType: GLOBAL_PARAMS.deviceType,
+                deviceName: ''
+            });
+
+            const response = await $.ajax({
+                url: 'https://saas.zeasn.tv/user/device/login',
+                method: 'POST',
+                headers: {
+                    'Authorization': generateAuthorizationHeader('/user/device/login'),
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                data: params.toString(),
+                processData: false
+            });
+
+            if (response.errorCode !== "0") throw new Error('Failed to get user token');
+            return response.data.userToken;
+        }
+
+        $(document).ready(async () => {
+            // Display mac
+            $('#macAddressPlaceholder').text(GLOBAL_PARAMS.mac);
+
+            try {
+                // Initialize token
+                globalToken = await getToken();
+                // Update the display after successfully obtaining the token
+                $('#tokenText').text(globalToken);
+
+                // Fetch user token
+                globalUserToken = await getUserToken();
+                
+                // Fetch column data
+                const columnsData = await getColumns(globalToken);
+                
+                // Render tree structure
+                renderTree(columnsData);
+                
+                // Show content area
+                $('#loading').addClass('d-none');
+                $('#dataTree').removeClass('d-none');
+            } catch (error) {
+                handleError(error);
+            }
+
+            // Remove highlight when modal closes
+            $('#contentModal').on('hidden.bs.modal', () => {
+                if (activeNode) {
+                    activeNode.removeClass('active-node');
+                    activeNode = null;
+                }
+            });
+        });
+
+        // Get authentication token
+        async function getToken() {
+            const params = new URLSearchParams({
+                ...GLOBAL_PARAMS
+            });
+
+            const response = await $.ajax({
+                url: 'https://saas.zeasn.tv/auth-api/api/v1/auth/deviceSign',
+                method: 'POST',
+                contentType: 'application/x-www-form-urlencoded',
+                data: params.toString(),
+                processData: false
+            });
+
+            if (response.errorCode !== "0") throw new Error('Failed to get token');
+
+            // Save to global variable
+            lockedClientIp = GLOBAL_PARAMS.clientIp;
+            
+            return response.data.token;
+        }
+
+        // Fetch column data
+        async function getColumns(token) {
+            const response = await $.ajax({
+                url: `https://saas.zeasn.tv/sp/api/device/v1/column?token=${token}`,
+                method: 'GET'
+            });
+
+            if (response.errorCode !== 0) throw new Error('Failed to fetch columns');
+            return response.data;
+        }
+
+        // Render tree structure
+        function renderTree(data) {
+            const $tree = $('#dataTree').empty();
+            const buildNode = (item) => {
+                // As long as the children array exists, it is the parent node
+                const isParentNode = Array.isArray(item.children);
+                const $li = $('<li>').addClass(isParentNode ? 'tree-node' : 'tree-leaf');
+
+                const $content = $('<div>')
+                    .addClass('node-content' + (item.children?.length ? '' : ' clickable-node'))
+                    .html(`
+                        <span class="fw-bold">${item.name}</span>
+                        <small class="text-muted ms-2">#${item.id}</small>
+                    `);
+
+                // Click handler
+                if (!item.children?.length) {
+                    $content.click(async function() {
+                        try {
+                            // Highlight node
+                            if (activeNode) activeNode.removeClass('active-node');
+                            activeNode = $(this).addClass('active-node');
+                            
+                            const modal = new bootstrap.Modal('#contentModal');
+                            showLoading(modal);
+                            
+                            const contentData = await getColumnContent(item.id);
+                            await renderModalContent(contentData, modal);
+                        } catch (error) {
+                            alert('Failed to load content: ' + error.message);
+                            bootstrap.Modal.getInstance('#contentModal').hide();
+                        }
+                    });
+                }
+
+                $li.append($content);
+                
+                // Recursive rendering
+                if (isParentNode) {
+                    const $children = $('<ul>').addClass('children-list');
+                    item.children?.forEach(child => $children.append(buildNode(child)));
+                    $li.append($children);
+                }
+                
+                return $li;
+            };
+
+            // Build root node
+            const $root = $('<ul>').addClass('children-list');
+            data.forEach(item => $root.append(buildNode(item)));
+            $tree.append($root);
+        }
+
+        // Fetch column content
+        async function getColumnContent(columnId) {
+            const response = await $.ajax({
+                url: `https://saas.zeasn.tv/sp/api/device/v1/column/content?token=${globalToken}&columnIds=${columnId}`,
+                method: 'GET'
+            });
+
+            if (response.errorCode !== 0 || !response.data?.[0]) {
+                throw new Error('Failed to fetch content');
+            }
+            return response.data[0];
+        }
+
+        // Show loading state
+        function showLoading(modal) {
+            $('#modalTitle').html(`
+                <span>Loading...</span>
+                <div class="spinner-border spinner-border-sm ms-2"></div>
+            `);
+            $('#contentContainer').html('<div class="text-center py-4"><div class="spinner-border"></div></div>');
+            modal.show();
+        }
+
+        // Render modal content
+        async function renderModalContent(data, modal) {
+            try {
+                // Validate data
+                if (!data.content || !data.content.dataList || data.content.dataList.length === 0) {
+                    $('#contentContainer').html(`
+                        <div class="col-12 text-center py-5">
+                            <i class="bi bi-exclamation-circle fs-1 text-muted"></i>
+                            <p class="mt-3">No data available</p>
+                        </div>
+                    `);
+                    $('#modalTitle').text('No Data');
+                    return;
+                }
+
+                // Update UI
+                $('#modalTitle').text(data.content.name || 'Content Details');
+                $('#contentContainer').empty();
+
+                data.content.dataList.forEach(item => {
+                    const $col = $('<div>').addClass('col-12 col-md-6 col-lg-4 mb-4');
+                    const $card = $('<div>').addClass('card h-100 shadow-sm');
+                    
+                    // Add overlay container
+                    const $overlay = $('<div>').addClass('card-img-overlay');
+                    
+                    // Parse objectType
+                    let objectType = 'N/A';
+                    try {
+                        const valueObj = JSON.parse(item.value);
+                        objectType = valueObj.objectType || 'N/A';
+                    } catch(e) {
+                        console.warn('Failed to parse value:', item.value);
+                    }
+                    
+                    $overlay.append(
+                        $('<span>').addClass('type-badge').text(objectType)
+                    );
+                    
+                    // Image section
+                    if (item.icon) {
+                        const $imgContainer = $('<div>').addClass('position-relative');
+                        $('<img>')
+                            .addClass('content-image')
+                            .attr('src', item.icon)
+                            .attr('alt', item.name)
+                            .on('error', function() {
+                                $(this).attr('src', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
+                            })
+                            .appendTo($imgContainer);
+                        
+                        try {
+                            const valueObj = JSON.parse(item.value);
+                            if (valueObj && valueObj.objectType) {
+                                const $overlay = $('<div>').addClass('card-img-overlay');
+                                $overlay.append(
+                                    $('<span>').addClass('type-badge').text(valueObj.objectType)
+                                );
+                                $imgContainer.append($overlay);
+                            }
+                        } catch(e) {
+                            console.warn('Failed to parse value:', item.value);
+                        }
+
+                        $card.append($imgContainer);
+                    }
+
+                    // Content body
+                    const $body = $('<div>').addClass('card-body');
+                    // Title part
+                    $body.append($('<h5>').addClass('card-title').text(item.name));
+                    
+                    // Description part
+                    if (item.briefDesc) {
+                        $body.append(
+                            $('<p>')
+                                .addClass('card-text text-muted')
+                                .css('font-size', '0.9em')
+                                .text(item.briefDesc)
+                        );
+                    }
+
+                    // Time display part
+                    if (item.releaseTime > 0) {
+                        $body.append(
+                            $('<p>')
+                                .addClass('card-text text-muted mt-2') // Add mt-2 to increase spacing
+                                .css('font-size', '0.85em')
+                                .text(`Release Time(UTC): ${formatUTCDate(item.releaseTime)}`)
+                        );
+                    }
+
+                    // Play source display
+                    if (item.deeplinkDetailList?.length > 0) {
+                        const $sources = $('<div>').addClass('mt-2');
+                        
+                        // Deduplication
+                        const uniqueSources = [];
+                        const seenIds = new Set();
+                        
+                        item.deeplinkDetailList.forEach(link => {
+                            if (!seenIds.has(link.sourceId)) {
+                                seenIds.add(link.sourceId);
+                                uniqueSources.push({
+                                    icon: link.sourceIcon,
+                                    name: link.sourceName
+                                });
+                            }
+                        });
+
+                        const sourcesHtml = `
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted">Available On:</small>
+                                ${uniqueSources.map(source => `
+                                    <img src="${source.icon}" 
+                                         alt="${source.name}"
+                                         class="deeplink-icon"
+                                         data-bs-toggle="tooltip" 
+                                         title="${source.name}"
+                                         style="width:24px;height:24px">
+                                `).join('')}
+                            </div>
+                        `;
+
+                        $sources.html(sourcesHtml);
+                        $body.append($sources);
+                    }
+
+                    // Footer info
+                    const $footer = $('<div>').addClass('card-footer bg-transparent');
+                    if (item.moreInfo?.videoScores) {
+                        const scores = item.moreInfo.videoScores
+                            .map(s => `${s.type}: ${s.value}`)
+                            .join(' | ');
+                        $footer.append($('<small>').addClass('text-muted').text(scores));
+                    }
+
+                    $card.append($body, $footer);
+                    $col.append($card);
+                    $('#contentContainer').append($col);
+
+                    // Add click event
+                    $card.click(async () => {
+                        try {
+                            // Check resource type
+                            const resType = item.rsType;
+                            if (resType !== 6 && resType !== 12) {
+                                alert('For simple types, no further information is needed.');
+                                return;
+                            }
+
+                            const detailModal = new bootstrap.Modal('#resourceDetailModal');
+                            showDetailLoading(detailModal);
+                            
+                            // Get resource details
+                            const detailData = await getResourceDetail(
+                                item.rsType,
+                                item.value
+                            );
+                            
+                            renderResourceDetail(detailData, item.rsType);
+                        } catch (error) {
+                            alert('Failed to load details: ' + error.message);
+                        }
+                    });
+                });
+
+                // Initialize Tooltip with custom configuration
+                $('[data-bs-toggle="tooltip"]').tooltip({
+                    trigger: 'hover',
+                    boundary: 'window',
+                    customClass: 'tooltip-custom'
+                });
+            } catch (error) {
+                console.error('Rendering failed:', error);
+                $('#contentContainer').html(`
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Failed to load content, please try again
+                    </div>
+                `);
+            }
+        }
+
+        // Error handling
+        function handleError(error) {
+            console.error('System error:', error);
+            $('#loading').html(`
+                <div class="alert alert-danger" style="max-width: 500px;">
+                    <h4 class="alert-heading">Initialization Failed</h4>
+                    <p>${error.message || 'Unknown error'}</p>
+                    <hr>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary" onclick="location.reload()">
+                            <i class="bi bi-arrow-clockwise"></i> Reload
+                        </button>
+                    </div>
+                </div>
+            `);
+        }
+    </script>
+    <script type="text/javascript">
+        // Add new resource details related methods
+        async function getResourceDetail(resourceType, value) {
+            const encodedValue = encodeURIComponent(value);
+            const url = `https://saas.zeasn.tv/sp/api/device/v1/column/resourceDetail?token=${globalToken}&resourceType=${resourceType}&value=${encodedValue}&needPoster=true&posterWidth=1280&needAward=true`;
+            
+            const response = await $.ajax({
+                url: url,
+                method: 'GET'
+            });
+
+            if (response.errorCode !== 0) throw new Error('Failed to fetch resource details');
+            return response.data;
+        }
+
+        function showDetailLoading(modal) {
+            $('#resourceDetailContent').html(`
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-3">Loading details...</p>
+                </div>
+            `);
+            modal.show();
+        }
+
+        function renderResourceDetail(data, resourceType) {
+            const $content = $('#resourceDetailContent').empty();
+            
+            // Parse basic information
+            const baseInfo = {
+                name: data.name || 'Unknown',
+                id: data.id || 'N/A',
+                type: resourceType === 6 ? 'APP' : data.type || 'Unknown',
+                description: data.description || 'No description available'
+            };
+
+            // Get the image URL
+            let imageUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+            if (resourceType === 6 && data.icons?.[0]?.url) {
+                imageUrl = data.icons[0].url;
+            } else if (resourceType === 12 && data.covers?.[0]?.url) {
+                imageUrl = data.covers[0].url;
+            }
+
+            // Add Deeplinks Handling
+            let deeplinksHtml = '';
+            if (data.deeplinks?.length > 0) {
+                // Deduplication
+                const uniqueSources = [];
+                const seenIds = new Set();
+                
+                data.deeplinks.forEach(link => {
+                    if (!seenIds.has(link.sourceId)) {
+                        seenIds.add(link.sourceId);
+                        uniqueSources.push({
+                            icon: link.sourceIcon,
+                            name: link.sourceName
+                        });
+                    }
+                });
+
+                deeplinksHtml = `
+                    <div class="mt-4">
+                        <h6 class="detail-label">Available On</h6>
+                        <div class="d-flex flex-wrap gap-3">
+                            ${uniqueSources.map(source => `
+                                <div class="deeplink-item">
+                                    <img src="${source.icon}" 
+                                         alt="${source.name}" 
+                                         class="deeplink-icon"
+                                         data-bs-toggle="tooltip" 
+                                         title="${source.name}">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            const detailHtml = `
+                <div class="text-center">
+                    <img src="${imageUrl}" class="detail-modal-img" alt="${baseInfo.name}">
+                </div>
+                <div class="detail-metadata">
+                    <div class="detail-item">
+                        <span class="detail-label">Name:</span> ${baseInfo.name}
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">ID:</span> ${baseInfo.id}
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Type:</span> ${baseInfo.type}
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Description:</span> ${baseInfo.description}
+                    </div>
+                    ${data.releaseTime > 0 ? `
+                    <div class="detail-item">
+                        <span class="detail-label">Release Time(UTC):</span> 
+                        ${formatUTCDate(data.releaseTime)}
+                    </div>` : ''}
+                    ${deeplinksHtml}
+                </div>
+            `;
+
+            $content.html(detailHtml);
+
+            // Initialize Tooltip
+            $('[data-bs-toggle="tooltip"]').tooltip();
+        }
+
+        // Time formatting tool function
+        function formatUTCDate(timestamp) {
+            if (!timestamp || timestamp <= 0) return 'N/A';
+
+            // Make sure the timestamp is a number
+            timestamp = Number(timestamp);
+
+            const date = new Date(timestamp);
+
+            // Check if the date is valid
+            if (isNaN(date.getTime())) {
+                console.error('Invalid timestamp:', timestamp);
+                return 'Invalid Date';
+            }
+
+            // Format date as UTC time
+            return [
+                date.getUTCFullYear(),
+                // Month starts at 0, need to add 1
+                String(date.getUTCMonth() + 1).padStart(2, '0'),
+                String(date.getUTCDate()).padStart(2, '0')
+            ].join('-');
+        }
+    </script>
+    <script>
+        // Add click handler for device info button
+        $('#deviceInfoBtn').click(async () => {
+            try {
+                const modal = new bootstrap.Modal('#deviceInfoModal');
+                $('#deviceInfoContent').html('<div class="text-center py-4"><div class="spinner-border"></div></div>');
+                modal.show();
+                
+                const response = await $.ajax({
+                    url: `https://saas.zeasn.tv/sp/api/device/v1/column/tokenDetail?token=${globalToken}`,
+                    method: 'GET'
+                });
+
+                if (response.errorCode !== 0 || !response.data) {
+                    throw new Error('Failed to fetch device info');
+                }
+                
+                renderDeviceInfo(response.data);
+            } catch (error) {
+                $('#deviceInfoContent').html(`
+                    <div class="alert alert-danger">
+                        ${error.message || 'Failed to load device information'}
+                    </div>
+                `);
+            }
+        });
+
+        // Render device information
+        function renderDeviceInfo(data) {
+            if (!data) {
+                $('#deviceInfoContent').html('<div class="text-center py-4">No device data available</div>');
+                return;
+            }
+
+            const infoHtml = `
+                <table class="device-info-table">
+                    <tbody>
+                        ${renderInfoRow('Product ID', data.productId)}
+                        ${renderInfoRow('Product Name', data.productName)}
+                        ${renderInfoRow('Deviceset ID', data.deviceSetId)}
+                        ${renderInfoRow('Deviceset Name', data.dsName)}
+                        ${renderInfoRow('Function Type', getFunctionType(data.functionType))}
+                        ${renderInfoRow('Country', data.countryFromOriginal)}
+                        ${renderInfoRow('IP Country', data.countryFromIp)}
+                        ${renderInfoRow('IP Distribution', data.tvIpDistributionStatus)}
+                        ${renderInfoRow('Device Country', data.countryCode)}
+                        ${renderInfoRow('Device Type', data.deviceType)}
+                        ${renderInfoRow('MAC Address', data.mac)}
+                        ${renderInfoRow('Language', data.langCode)}
+                        ${renderInfoRow('Locked IP', lockedClientIp)}
+                    </tbody>
+                </table>
+            `;
+
+            $('#deviceInfoContent').html(infoHtml);
+        }
+
+        // Helper function to format values
+        function renderInfoRow(label, value) {
+            const displayValue = value !== undefined && value !== null 
+                ? (typeof value === 'boolean' ? (value ? 'Enabled' : 'Disabled') : value)
+                : 'Unknown';
+            
+            return `
+                <tr>
+                    <td>${label}:</td>
+                    <td>${displayValue}</td>
+                </tr>
+            `;
+        }
+
+        // Map function type values
+        function getFunctionType(value) {
+            const mapping = {1: 'TvLauncher', 2: 'AppStore'};
+            return value in mapping ? mapping[value] : 'Unknown';
+        }
+
+        // Set the display after obtaining the token
+        $('#tokenText').text(globalToken);
+
+        // Add token copy function
+        $('#tokenDisplay').click(async function() {
+            try {
+                await navigator.clipboard.writeText(globalToken);
+                
+                // Display feedback effect
+                const $btn = $(this);
+                $btn.addClass('copied');
+                setTimeout(() => $btn.removeClass('copied'), 1500);
+                
+            } catch (err) {
+                alert('Copy failed. Please manually select the token.');
+            }
+        });
+
+        // Personalized recommendation
+        $('#recommendBtn').click(async () => {
+            try {
+                const modal = new bootstrap.Modal('#contentModal');
+                showLoading(modal);
+                
+                const response = await $.ajax({
+                    url: `https://saas.zeasn.tv/sp/api/device/v1/video/recommend?token=${globalToken}&userToken=${globalUserToken}&videoType=MOVIE&size=30&needPoster=true&imgStyle=0&imgWidth=800`,
+                    method: 'GET'
+                });
+
+                if (response.errorCode !== 0 || !response.data) {
+                    throw new Error('Failed to obtain personalized recommendation content');
+                }
+
+                // Adapting data structure
+                const wrappedData = {
+                    content: {
+                        name: "Personalized recommendations",
+                        dataList: response.data.map(item => ({
+                            ...item,
+                            // Keeping data structure consistent
+                            value: item.value || JSON.stringify({ id: item.id, objectType: "MOVIE" }),
+                            rsType: 12 // Fixed to video type
+                        }))
+                    }
+                };
+
+                await renderModalContent(wrappedData, modal);
+            } catch (error) {
+                alert('Failed to load personalized recommendation content: ' + error.message);
+                bootstrap.Modal.getInstance('#contentModal').hide();
+            }
+        });
+
+        // Configuration Modal Logic
+        const CONFIG_KEYS = Object.keys(GLOBAL_PARAMS);
+        // 打开配置弹窗并渲染表单
+        $('#configBtn').click(function() {
+            const $fields = $('#configFormFields').empty();
+            CONFIG_KEYS.forEach(key => {
+                let value = GLOBAL_PARAMS[key];
+                // 只显示注释外的参数
+                if (typeof value === 'undefined') return;
+                $fields.append(`
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-bold">${key}</label>
+                        <input type="text" class="form-control" name="${key}" value="${value ?? ''}">
+                    </div>
+                `);
+            });
+            const modal = new bootstrap.Modal('#configModal');
+            modal.show();
+        });
+        // 保存配置并刷新页面
+        $('#configSaveBtn').click(function() {
+            const formArr = $('#configForm').serializeArray();
+            formArr.forEach(({name, value}) => {
+                GLOBAL_PARAMS[name] = value;
+            });
+            // 存储到localStorage
+            localStorage.setItem('GLOBAL_PARAMS', JSON.stringify(GLOBAL_PARAMS));
+            location.reload();
+        });
+        // 配置重置按钮逻辑：恢复初始参数
+        $('#configResetBtn').click(function() {
+            // 还原GLOBAL_PARAMS为初始值
+            const initial = {
+                productId: 'wtv10',
+                brandId: '7',
+                deviceSetId: '10bfa24f235519482a8b9b1c2ad7a3aef6',
+                deviceType: 'WHALEOS_ZEASN_962D4_4K_MTP_P4',
+                countryCode: 'DE',
+                langCode: 'en',
+                mac: '18:84:c1:f4:2c:60',
+                functionType: 'TvLauncher',
+                ifGetTvDetail: '1',
+                iconResolution: '320*180',
+                terminalType: 'TV',
+                sn: '',
+                appVersion: '20000043',
+                androidVersion: '13',
+                osType: 'WhaleOSA',
+                clientIp: '217.111.87.254'
+            };
+            Object.assign(GLOBAL_PARAMS, initial);
+            // 更新表单显示
+            $('#configForm input').each(function() {
+                const key = $(this).attr('name');
+                if (key in initial) $(this).val(initial[key]);
+            });
+            // 清除localStorage
+            localStorage.removeItem('GLOBAL_PARAMS');
+        });
+        // 页面加载时优先读取localStorage参数
+        (function restoreConfig() {
+            const saved = localStorage.getItem('GLOBAL_PARAMS');
+            if (saved) {
+                try {
+                    const obj = JSON.parse(saved);
+                    Object.assign(GLOBAL_PARAMS, obj);
+                } catch(e) {}
+            }
+        })();
+
+        // 单元测试（简单示例，QUnit）
+        (function(){
+            if (!window.QUnit) return;
+            QUnit.module('Configuration Modal');
+            QUnit.test('Should open and save config', function(assert) {
+                $('#configBtn').click();
+                assert.ok($('#configModal').hasClass('show') || $('#configModal').is(':visible'), 'Config modal opened');
+                const $firstInput = $('#configForm input').first();
+                const oldVal = $firstInput.val();
+                $firstInput.val('testValue');
+                $('#configSaveBtn').click();
+                setTimeout(function() {
+                    const saved = JSON.parse(localStorage.getItem('GLOBAL_PARAMS'));
+                    assert.equal(saved[$firstInput.attr('name')], 'testValue', 'Config saved to localStorage');
+                }, 100);
+            });
+        })();
+    </script>
+</body>
+</html>
