@@ -1,0 +1,5 @@
+# TV Data页面自动化测试依赖包
+selenium>=4.0.0
+# dataclasses在Python 3.7+中是内置模块，无需单独安装
+# 如果使用Python 3.6，请取消下面一行的注释
+# dataclasses>=0.6

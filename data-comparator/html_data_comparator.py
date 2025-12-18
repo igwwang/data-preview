@@ -25,14 +25,14 @@ class HTMLDataComparator:
     def __init__(self):
         # JDK17版本配置
         self.jdk17_config = {
-            'API_BASE_URL': 'https://dev-saas-17.zeasn.tv',
-            'ACCESS_KEY': '10353c6d999f4141bbb35dcc70ed08e0e6',
-            'SECRET_KEY': '10e643bd7c7df54073ab333c6309926337',
+            'API_BASE_URL': 'https://acc-saas-17.zeasn.tv',
+            'ACCESS_KEY': '10e756c18743b342a491b03f6040fbd873',
+            'SECRET_KEY': '1063fdb17dcbee464fa248e4acaed367a9',
             'DEFAULT_PARAMS': {
                 'productId': 'wtv10',
                 'brandId': '7',
                 'deviceSetId': '10bfa24f235519482a8b9b1c2ad7a3aef6',
-                'deviceType': 'WHALEOS10_Zeasn_Test_AML962D4',
+                'deviceType': 'WHALEOS_ZEASN_962D4_4K_MTP_P15',
                 'countryCode': 'US',
                 'langCode': 'en',
                 'mac': 'e8:51:9e:28:c7:4c',
@@ -50,14 +50,14 @@ class HTMLDataComparator:
         
         # JDK8版本配置
         self.jdk8_config = {
-            'API_BASE_URL': 'https://dev-saas.zeasn.tv',
-            'ACCESS_KEY': '10353c6d999f4141bbb35dcc70ed08e0e6',
-            'SECRET_KEY': '10e643bd7c7df54073ab333c6309926337',
+            'API_BASE_URL': 'https://acc-saas.zeasn.tv',
+            'ACCESS_KEY': '10e756c18743b342a491b03f6040fbd873',
+            'SECRET_KEY': '1063fdb17dcbee464fa248e4acaed367a9',
             'DEFAULT_PARAMS': {
                 'productId': 'wtv10',
                 'brandId': '7',
                 'deviceSetId': '10bfa24f235519482a8b9b1c2ad7a3aef6',
-                'deviceType': 'WHALEOS10_Zeasn_Test_AML962D4',
+                'deviceType': 'WHALEOS_ZEASN_962D4_4K_MTP_P15',
                 'countryCode': 'US',
                 'langCode': 'en',
                 'mac': 'e8:51:9e:28:c7:4c',
@@ -274,7 +274,7 @@ class HTMLDataComparator:
     def get_banner_ad_recommendation(self, config, token, user_token):
         """获取Banner AD推荐"""
         # JDK17版本使用不同的参数
-        if 'dev-saas-17' in config['API_BASE_URL']:
+        if 'acc-saas-17' in config['API_BASE_URL']:
             url = f"{config['API_BASE_URL']}/sp/api/device/v1/video/recommend/ad?token={token}&searchType=REC_CHANNEL,VOD&size=1&scopeId=3&typeWeight=100,100&supportAD=true&moreFields=description,tags,source,background,cover&posterShape&posterWidth&posterHeight&iconShape&iconWidth&iconHeight&position=LAUNCHER&userToken={user_token}"
         else:
             url = f"{config['API_BASE_URL']}/sp/api/device/v1/video/recommend/ad?token={token}&searchType=REC_CHANNEL,VOD&size=1&scopeId=3&typeWeight=100,100&supportAD=true&moreFields=description,tags,source,background,cover&posterShape&posterWidth&posterHeight&iconShape&iconWidth&iconHeight&position=LAUNCHER&userToken={user_token}"
