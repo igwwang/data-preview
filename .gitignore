@@ -49,3 +49,6 @@ __pycache__/
 *.bkp
 *.backup
 *~
+
+### Test Logs ###
+data-test/tv_data_test.log
