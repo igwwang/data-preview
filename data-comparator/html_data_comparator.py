@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-HTML数据比对测试脚本 - 增强版
-用于比对OS10-dev-QA-JDK17.html和OS10-dev-QA.html中各按钮和树形链接的数据数量差异
+HTML数据比对测试脚本 - 多环境版
+用于比对不同环境下JDK17版本和JDK8版本API接口的数据数量差异
+支持dev、acc、prod三种环境，自动解析HTML文件中的配置
 增加了错误处理、重试机制和网络连接检测
 """
 
 import requests
 import json
 import time
+import sys
+import os
+import re
 from urllib.parse import urlencode
 import hashlib
 import hmac
@@ -22,7 +26,138 @@ import socket
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class HTMLDataComparator:
-    def __init__(self):
+    def __init__(self, environment='acc'):
+        self.environment = environment.lower()
+        self.jdk17_config = None
+        self.jdk8_config = None
+        
+        # 根据环境加载配置
+        self._load_environment_configs()
+        
+        # 环境映射
+        self.env_mapping = {
+            'dev': {'jdk17_file': 'OS10-dev-QA-JDK17.html', 'jdk8_file': 'OS10-dev-QA.html'},
+            'acc': {'jdk17_file': 'OS10-acc-QA-JDK17.html', 'jdk8_file': 'OS10-acc-QA.html'},
+            'prod': {'jdk17_file': 'OS10-prod-QA-JDK17.html', 'jdk8_file': 'OS10-prod-QA.html'}
+        }
+        
+        self.jdk17_token = None
+        self.jdk8_token = None
+        self.jdk17_user_token = None
+        self.jdk8_user_token = None
+        self.comparison_results = []
+        self.max_retries = 3
+        self.retry_delay = 2
+    
+    def _load_environment_configs(self):
+        """根据环境加载配置"""
+        try:
+            # 获取当前脚本目录的父目录
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            parent_dir = os.path.dirname(script_dir)
+            
+            # 根据环境确定文件名
+            if self.environment == 'dev':
+                jdk17_file = 'OS10-dev-QA-JDK17.html'
+                jdk8_file = 'OS10-dev-QA.html'
+            elif self.environment == 'acc':
+                jdk17_file = 'OS10-acc-QA-JDK17.html'
+                jdk8_file = 'OS10-acc-QA.html'
+            elif self.environment == 'prod':
+                jdk17_file = 'OS10-prod-QA-JDK17.html'
+                jdk8_file = 'OS10-prod-QA.html'
+            else:
+                raise ValueError(f"不支持的环境: {self.environment}，支持的环境: dev, acc, prod")
+            
+            # 构建文件路径
+            jdk17_path = os.path.join(parent_dir, jdk17_file)
+            jdk8_path = os.path.join(parent_dir, jdk8_file)
+            
+            # 解析配置
+            self.jdk17_config = self._parse_html_config(jdk17_path, 'JDK17')
+            self.jdk8_config = self._parse_html_config(jdk8_path, 'JDK8')
+            
+            print(f"成功加载{self.environment.upper()}环境配置:")
+            print(f"  JDK17: {self.jdk17_config['API_BASE_URL']}")
+            print(f"  JDK8: {self.jdk8_config['API_BASE_URL']}")
+            
+        except Exception as e:
+            print(f"加载环境配置失败: {e}")
+            # 使用默认ACC配置作为后备
+            self._load_default_acc_config()
+    
+    def _parse_html_config(self, file_path, version_name):
+        """解析HTML文件中的配置"""
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"HTML文件不存在: {file_path}")
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # 提取API_BASE_URL
+            api_url_match = re.search(r"const API_BASE_URL = ['\"]([^'\"]+)['\"];", content)
+            if not api_url_match:
+                raise ValueError(f"无法在{file_path}中找到API_BASE_URL")
+            api_base_url = api_url_match.group(1)
+            
+            # 提取ACCESS_KEY
+            access_key_match = re.search(r"const ACCESS_KEY = ['\"]([^'\"]+)['\"];", content)
+            if not access_key_match:
+                raise ValueError(f"无法在{file_path}中找到ACCESS_KEY")
+            access_key = access_key_match.group(1)
+            
+            # 提取SECRET_KEY
+            secret_key_match = re.search(r"const SECRET_KEY = ['\"]([^'\"]+)['\"];", content)
+            if not secret_key_match:
+                raise ValueError(f"无法在{file_path}中找到SECRET_KEY")
+            secret_key = secret_key_match.group(1)
+            
+            # 提取DEFAULT_PARAMS
+            default_params_match = re.search(r"const DEFAULT_PARAMS = \{([^}]+)\};", content, re.DOTALL)
+            if not default_params_match:
+                raise ValueError(f"无法在{file_path}中找到DEFAULT_PARAMS")
+            
+            # 解析DEFAULT_PARAMS
+            params_content = default_params_match.group(1)
+            default_params = self._parse_js_object(params_content)
+            
+            return {
+                'API_BASE_URL': api_base_url,
+                'ACCESS_KEY': access_key,
+                'SECRET_KEY': secret_key,
+                'DEFAULT_PARAMS': default_params
+            }
+            
+        except Exception as e:
+            raise Exception(f"解析{version_name}配置文件{file_path}失败: {e}")
+    
+    def _parse_js_object(self, js_content):
+        """解析JavaScript对象为Python字典"""
+        params = {}
+        
+        # 匹配键值对
+        pattern = r"(\w+):\s*['\"]?([^,'\"\n]+)['\"]?"
+        matches = re.findall(pattern, js_content)
+        
+        for key, value in matches:
+            # 清理值
+            value = value.strip().rstrip(',')
+            if value.startswith("'") or value.startswith('"'):
+                value = value[1:-1]
+            
+            # 处理注释行
+            if '//' in value:
+                continue
+                
+            params[key] = value
+        
+        return params
+    
+    def _load_default_acc_config(self):
+        """加载默认ACC环境配置作为后备"""
+        print("使用默认ACC环境配置作为后备...")
+        
         # JDK17版本配置
         self.jdk17_config = {
             'API_BASE_URL': 'https://acc-saas-17.zeasn.tv',
@@ -44,7 +179,7 @@ class HTMLDataComparator:
                 'appVersion': '20000018',
                 'androidVersion': '13',
                 'osType': 'WhaleOSA',
-                'clientIp': '122.10.101.131'
+                'clientIp': '45.86.202.30'
             }
         }
         
@@ -69,17 +204,9 @@ class HTMLDataComparator:
                 'appVersion': '20000018',
                 'androidVersion': '13',
                 'osType': 'WhaleOSA',
-                'clientIp': '122.10.101.131'
+                'clientIp': '45.86.202.30'
             }
         }
-        
-        self.jdk17_token = None
-        self.jdk8_token = None
-        self.jdk17_user_token = None
-        self.jdk8_user_token = None
-        self.comparison_results = []
-        self.max_retries = 3
-        self.retry_delay = 2
         
     def check_network_connectivity(self, url):
         """检查网络连接"""
@@ -342,7 +469,7 @@ class HTMLDataComparator:
     
     def run_comparison(self):
         """运行完整比对测试"""
-        print("开始HTML数据比对测试...")
+        print(f"开始{self.environment.upper()}环境HTML数据比对测试...")
         print("=" * 60)
         
         try:
@@ -569,10 +696,11 @@ class HTMLDataComparator:
         
         # 保存详细报告
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_filename = f"HTML_Data_Comparison_Report_{timestamp}.md"
+        report_filename = f"HTML_Data_Comparison_Report_{self.environment}_{timestamp}.md"
         
         with open(report_filename, 'w', encoding='utf-8') as f:
-            f.write("# HTML数据比对测试报告\n\n")
+            f.write(f"# {self.environment.upper()}环境HTML数据比对测试报告\n\n")
+            f.write(f"**测试环境:** {self.environment.upper()}\n")
             f.write(f"**测试时间:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write(f"**JDK17版本API:** {self.jdk17_config['API_BASE_URL']}\n")
             f.write(f"**JDK8版本API:** {self.jdk8_config['API_BASE_URL']}\n\n")
@@ -686,8 +814,28 @@ class HTMLDataComparator:
 # 主执行函数
 def main():
     """主执行函数"""
-    comparator = HTMLDataComparator()
-    comparator.run_comparison()
+    # 检查命令行参数
+    if len(sys.argv) > 1:
+        environment = sys.argv[1].lower()
+        if environment not in ['dev', 'acc', 'prod']:
+            print("错误: 不支持的环境参数")
+            print("用法: python html_data_comparator.py [dev|acc|prod]")
+            print("示例:")
+            print("  python html_data_comparator.py dev   # DEV环境比对")
+            print("  python html_data_comparator.py acc   # ACC环境比对")
+            print("  python html_data_comparator.py prod  # PROD环境比对")
+            sys.exit(1)
+    else:
+        environment = 'acc'  # 默认使用ACC环境
+        print("未指定环境参数，使用默认ACC环境")
+        print("用法: python html_data_comparator.py [dev|acc|prod]")
+    
+    try:
+        comparator = HTMLDataComparator(environment)
+        comparator.run_comparison()
+    except Exception as e:
+        print(f"程序执行失败: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
