@@ -1203,9 +1203,18 @@
                     // Add click event
                     $card.click(async () => {
                         try {
-                            // Check resource type
+                            // Check resource type and objectType
                             const resType = item.rsType;
-                            if (resType !== 6 && resType !== 12) {
+                            let objectType = 'N/A';
+                            try {
+                                const valueObj = JSON.parse(item.value);
+                                objectType = valueObj.objectType || 'N/A';
+                            } catch(e) {
+                                console.warn('Failed to parse value:', item.value);
+                            }
+                            
+                            // Support MOVIE, REC_CHANNEL, and REC_PROGRAM
+                            if (resType !== 6 && resType !== 12 && objectType !== 'REC_CHANNEL' && objectType !== 'REC_PROGRAM') {
                                 alert('For simple types, no further information is needed.');
                                 return;
                             }
@@ -1309,6 +1318,8 @@
                 imageUrl = data.icons[0].url;
             } else if (resourceType === 12 && data.covers?.[0]?.url) {
                 imageUrl = data.covers[0].url;
+            } else if (data.background) {
+                imageUrl = data.background;
             }
 
             // Add Deeplinks Handling
@@ -1781,8 +1792,18 @@
                         }
                         
                         try {
+                            // Check resource type and objectType
                             const resType = item.rsType;
-                            if (resType !== 6 && resType !== 12) {
+                            let objectType = 'N/A';
+                            try {
+                                const valueObj = JSON.parse(item.value);
+                                objectType = valueObj.objectType || 'N/A';
+                            } catch(e) {
+                                console.warn('Failed to parse value:', item.value);
+                            }
+                            
+                            // Support MOVIE, REC_CHANNEL, and REC_PROGRAM
+                            if (resType !== 6 && resType !== 12 && objectType !== 'REC_CHANNEL' && objectType !== 'REC_PROGRAM') {
                                 alert('For simple types, no further information is needed.');
                                 return;
                             }
