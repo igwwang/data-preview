@@ -5,759 +5,986 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TV Data 测试报告</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { background: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
-        .summary { display: flex; gap: 20px; margin-bottom: 20px; }
-        .stat-card { background: white; border: 1px solid #ddd; padding: 15px; border-radius: 5px; text-align: center; flex: 1; }
-        .stat-number { font-size: 2em; font-weight: bold; }
-        .pass { color: #28a745; }
-        .fail { color: #dc3545; }
-        .results-table { width: 100%; border-collapse: collapse; }
-        .results-table th, .results-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        .results-table th { background-color: #f8f9fa; }
-        .status-pass { color: #28a745; font-weight: bold; }
-        .status-fail { color: #dc3545; font-weight: bold; }
+        :root {
+            --color-primary: #FF0055;
+            --color-text-primary: #19191C;
+            --color-text-secondary: #525256;
+            --color-text-tertiary: #A5A5A6;
+            --color-bg-primary: #FFFFFF;
+            --color-bg-secondary: #FAFAFЕ;
+            --color-border: #C8C8CC;
+            --color-divider: #DFE6EC;
+            --color-shadow: rgba(144, 147, 153, 0.3);
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --font-size-xs: 12px;
+            --font-size-sm: 14px;
+            --font-size-md: 16px;
+            --font-size-lg: 20px;
+            --font-size-xl: 24px;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: var(--spacing-lg);
+            background-color: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-sm);
+            line-height: 1.5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: var(--color-bg-primary);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px var(--color-shadow);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--color-primary), rgba(255, 0, 85, 0.8));
+            color: var(--color-bg-primary);
+            padding: var(--spacing-xl);
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0 0 var(--spacing-md) 0;
+            font-size: var(--font-size-xl);
+            font-weight: 600;
+        }
+        
+        .header p {
+            margin: var(--spacing-xs) 0;
+            font-size: var(--font-size-sm);
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: var(--spacing-xl);
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .stat-card {
+            background: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            padding: var(--spacing-lg);
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--color-shadow);
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+            line-height: 1;
+        }
+        
+        .stat-label {
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-sm);
+            font-weight: 400;
+        }
+        
+        .pass {
+            color: #10B981;
+        }
+        
+        .fail {
+            color: #EF4444;
+        }
+        
+        .section-title {
+            font-size: var(--font-size-lg);
+            font-weight: 600;
+            color: var(--color-text-primary);
+            margin: var(--spacing-xl) 0 var(--spacing-lg) 0;
+            padding-bottom: var(--spacing-sm);
+            border-bottom: 2px solid var(--color-divider);
+        }
+        
+        .table-container {
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+        }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background-color: var(--color-bg-primary);
+        }
+        
+        .results-table th {
+            background-color: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+            padding: var(--spacing-md);
+            font-weight: 600;
+            font-size: var(--font-size-sm);
+            text-align: left;
+            border-bottom: 1px solid var(--color-divider);
+        }
+        
+        .results-table td {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--color-divider);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-sm);
+            vertical-align: top;
+        }
+        
+        .results-table tbody tr:hover {
+            background-color: var(--color-bg-secondary);
+        }
+        
+        .results-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .status-pass {
+            color: #10B981;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+        
+        .status-fail {
+            color: #EF4444;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+        
+        .test-name {
+            font-weight: 500;
+            max-width: 300px;
+        }
+        
+        .test-message {
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-xs);
+            max-width: 250px;
+        }
+        
+        .test-data {
+            text-align: center;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+        }
+        
+        .test-time {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            color: var(--color-text-tertiary);
+            font-size: var(--font-size-xs);
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: var(--spacing-md);
+            }
+            
+            .header {
+                padding: var(--spacing-lg);
+            }
+            
+            .content {
+                padding: var(--spacing-lg);
+            }
+            
+            .summary {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-md);
+            }
+            
+            .stat-card {
+                padding: var(--spacing-md);
+            }
+            
+            .stat-number {
+                font-size: 2em;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            .results-table {
+                min-width: 800px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>TV Data 页面测试报告</h1>
-        <p>测试时间: 2025-12-22 17:59:41</p>
-        <p>总耗时: 480.51s</p>
+    <div class="container">
+        <div class="header">
+            <h1>TV Data 页面测试报告</h1>
+            <p>测试时间: 2025-12-22 17:59:41</p>
+            <p>总耗时: 480.51s</p>
+        </div>
+        
+        <div class="content">
+            <div class="summary">
+                <div class="stat-card">
+                    <div class="stat-number">100</div>
+                    <div class="stat-label">总测试数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number pass">99</div>
+                    <div class="stat-label">通过</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number fail">1</div>
+                    <div class="stat-label">失败</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">99.0%</div>
+                    <div class="stat-label">通过率</div>
+                </div>
+            </div>
+            
+            <h2 class="section-title">详细结果</h2>
+            <div class="table-container">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>测试项目</th>
+                            <th>状态</th>
+                            <th>消息</th>
+                            <th>数据量</th>
+                            <th>耗时(秒)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="test-name">Token复制按钮</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">Token复制功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">1.05</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">设备信息按钮</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">设备信息按钮功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">0.58</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">个性化推荐按钮内容卡片详情(What Would Picasso Do?)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.09</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">个性化推荐按钮</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">个性化推荐按钮功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">7.66</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Banner广告推荐按钮内容卡片详情(Clic)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Banner广告推荐按钮播放器复制链接按钮</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">复制功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">1.00</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Banner广告推荐按钮播放器视频元素</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">播放器显示正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Banner广告推荐按钮播放器标题显示</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">标题显示: Clic...</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">0.00</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Banner广告推荐按钮内容Play播放按钮</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">播放功能正常 (发现2个Play按钮，测试第1个)</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">5.79</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Banner广告推荐按钮</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">Banner广告推荐按钮功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">13.45</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">新个性化推荐按钮内容卡片详情(Frida)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">新个性化推荐按钮</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">新个性化推荐按钮功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">7.61</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">配置按钮</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">配置模态框打开正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">0.89</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Banner</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共5项</td>
+                            <td class="test-data">5</td>
+                            <td class="test-time">3.58</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Menu</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共11项</td>
+                            <td class="test-data">11</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Prime Video 二级推荐</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Whale TV+二级推荐</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Prime Video</td>
+                            <td class="status-fail">❌ 失败</td>
+                            <td class="test-message">无数据（异常）</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">3.58</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Hot Movies</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.58</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Lives</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.58</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Action</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Apps/Banner</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共3项</td>
+                            <td class="test-data">3</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Apps/Category</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共8项</td>
+                            <td class="test-data">8</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Apps/Top Apps</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共6项</td>
+                            <td class="test-data">6</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Apps/Recommended Apps</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共6项</td>
+                            <td class="test-data">6</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Discovery/tab</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共4项</td>
+                            <td class="test-data">4</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Featured/Latest Movies & TV</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Featured/Latest News</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.58</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Featured/Latest Trailers</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.58</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Recommended</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Comedy</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Action</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Drama</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Crime</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Fantasy</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Family</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Western</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Documentary</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Recommended</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共28项</td>
+                            <td class="test-data">28</td>
+                            <td class="test-time">3.58</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Comedy</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.58</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Action</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.58</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Kids</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Drama</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Family</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Sci-Fi</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Reality TV</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.59</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Live/Recommended</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.58</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Live/Food</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.58</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Hero Banner</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共4项</td>
+                            <td class="test-data">4</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Program Guide</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共1项</td>
+                            <td class="test-data">1</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Live Now</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Recommended Channels</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共12项</td>
+                            <td class="test-data">12</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Trending Free Movies</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共30项</td>
+                            <td class="test-data">30</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Free Apps</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">数据加载成功，共10项</td>
+                            <td class="test-data">10</td>
+                            <td class="test-time">3.57</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Banner详情页下载按钮(Whale TV+)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">下载功能正常 - 下载属性检测</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">3.36</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Banner内容卡片详情(Whale TV+)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">5.44</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Menu详情页下载按钮(Netflix)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">下载功能正常 - 下载属性检测</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">3.34</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Menu内容卡片详情(Netflix)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">5.42</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Prime Video 二级推荐内容卡片详情(Merv)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Whale TV+二级推荐内容卡片详情(123GO!)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Hot Movies内容卡片详情(Harvest)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.09</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Lives内容卡片详情(Watch the Oklahoma City Thunder vs. the Denver Nuggets live from Denver.)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Home/Action内容卡片详情(Regina Halmich vs. Stefan Raab - The Final Fight)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Apps/Banner详情页下载按钮(MUBI)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">下载功能正常 - 下载属性检测</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">3.34</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Apps/Banner内容卡片详情(MUBI)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">5.42</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Apps/Category内容卡片详情(Video)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片点击正常（警告框已处理，无详情模态框）</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">3.06</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Apps/Top Apps详情页下载按钮(Netflix)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">下载功能正常 - 下载属性检测</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">3.34</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Apps/Top Apps内容卡片详情(Netflix)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">5.42</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Apps/Recommended Apps详情页下载按钮(MUBI)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">下载功能正常 - 下载属性检测</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">3.35</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Apps/Recommended Apps内容卡片详情(MUBI)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">5.43</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Discovery/tab内容卡片详情</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片点击正常（警告框已处理，无详情模态框）</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">3.05</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Featured/Latest Movies & TV内容卡片详情(Late Shift)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Featured/Latest News内容卡片详情(Doomsday☄️The Decisive Battle for Pokrovsk and Kostiantynivka Rages On⚔️ Military Summary 2025.08.01)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Featured/Latest Trailers内容卡片详情(THE FANTASTIC FOUR FIRST STEPS (NEW 2025) Teaser)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Recommended内容卡片详情(Peacock)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Comedy内容卡片详情(Alle nicht ganz dicht)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Action内容卡片详情(Regina Halmich vs. Stefan Raab - The Final Fight)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Drama内容卡片详情(The Investigation)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Crime内容卡片详情(Landkrimi: Steirergift)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Fantasy内容卡片详情(Captain Faggotron Saves the Universe)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Family内容卡片详情(Max and the Senior Squad)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Western内容卡片详情(Vadogga)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Movies/Documentary内容卡片详情(Polizeiakademie)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Recommended内容卡片详情(Maxton Hall - Die Welt zwischen uns 1)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Action内容卡片详情(Elemental Nexus 1)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Kids内容卡片详情(The Adventures of the Young Marco Polo 2)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Drama内容卡片详情(Hackmask 1)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Family内容卡片详情(The Adventures of the Young Marco Polo 2)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.07</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Sci-Fi内容卡片详情(Curse of the Hawk 2)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">TV Shows/Reality TV内容卡片详情(Prince Charming 4)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Live/Recommended内容卡片详情(URBAN VIBES)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Live/Food内容卡片详情(123GO!)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Hero Banner详情页下载按钮(Whale TV+)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">下载功能正常 - 下载属性检测</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">3.35</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Hero Banner内容卡片详情(Whale TV+)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">5.43</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Program Guide内容卡片详情</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片点击正常（警告框已处理，无详情模态框）</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">3.05</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Live Now内容卡片详情(URBAN VIBES)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Recommended Channels内容卡片详情(123GO!)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Trending Free Movies内容卡片详情(The Death (Change) of an Industry: The Evolution (Collapse) of Retailing)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">2.08</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Free Apps详情页下载按钮(Filmzie - Free Movie Streaming)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">下载功能正常 - 下载属性检测</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">3.35</td>
+                        </tr>
+                        <tr>
+                            <td class="test-name">Free TV/Free Apps内容卡片详情(Filmzie - Free Movie Streaming)</td>
+                            <td class="status-pass">✅ 通过</td>
+                            <td class="test-message">卡片详情功能正常</td>
+                            <td class="test-data">-</td>
+                            <td class="test-time">5.43</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-    
-    <div class="summary">
-        <div class="stat-card">
-            <div class="stat-number">100</div>
-            <div>总测试数</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number pass">99</div>
-            <div>通过</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number fail">1</div>
-            <div>失败</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">99.0%</div>
-            <div>通过率</div>
-        </div>
-    </div>
-    
-    <h2>详细结果</h2>
-    <table class="results-table">
-        <thead>
-            <tr>
-                <th>测试项目</th>
-                <th>状态</th>
-                <th>消息</th>
-                <th>数据量</th>
-                <th>耗时(秒)</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Token复制按钮</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>Token复制功能正常</td>
-                <td>-</td>
-                <td>1.05</td>
-            </tr>
-            <tr>
-                <td>设备信息按钮</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>设备信息按钮功能正常</td>
-                <td>-</td>
-                <td>0.58</td>
-            </tr>
-            <tr>
-                <td>个性化推荐按钮内容卡片详情(What Would Picasso Do?)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.09</td>
-            </tr>
-            <tr>
-                <td>个性化推荐按钮</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>个性化推荐按钮功能正常</td>
-                <td>-</td>
-                <td>7.66</td>
-            </tr>
-            <tr>
-                <td>Banner广告推荐按钮内容卡片详情(Clic)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Banner广告推荐按钮播放器复制链接按钮</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>复制功能正常</td>
-                <td>-</td>
-                <td>1.00</td>
-            </tr>
-            <tr>
-                <td>Banner广告推荐按钮播放器视频元素</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>播放器显示正常</td>
-                <td>-</td>
-                <td>0.00</td>
-            </tr>
-            <tr>
-                <td>Banner广告推荐按钮播放器标题显示</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>标题显示: Clic...</td>
-                <td>-</td>
-                <td>0.00</td>
-            </tr>
-            <tr>
-                <td>Banner广告推荐按钮内容Play播放按钮</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>播放功能正常 (发现2个Play按钮，测试第1个)</td>
-                <td>-</td>
-                <td>5.79</td>
-            </tr>
-            <tr>
-                <td>Banner广告推荐按钮</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>Banner广告推荐按钮功能正常</td>
-                <td>-</td>
-                <td>13.45</td>
-            </tr>
-            <tr>
-                <td>新个性化推荐按钮内容卡片详情(Frida)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>新个性化推荐按钮</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>新个性化推荐按钮功能正常</td>
-                <td>-</td>
-                <td>7.61</td>
-            </tr>
-            <tr>
-                <td>配置按钮</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>配置模态框打开正常</td>
-                <td>-</td>
-                <td>0.89</td>
-            </tr>
-            <tr>
-                <td>Home/Banner</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共5项</td>
-                <td>5</td>
-                <td>3.58</td>
-            </tr>
-            <tr>
-                <td>Home/Menu</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共11项</td>
-                <td>11</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Home/Prime Video 二级推荐</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Home/Whale TV+二级推荐</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Home/Prime Video</td>
-                <td class="status-fail">❌ 失败</td>
-                <td>无数据（异常）</td>
-                <td>-</td>
-                <td>3.58</td>
-            </tr>
-            <tr>
-                <td>Home/Hot Movies</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.58</td>
-            </tr>
-            <tr>
-                <td>Home/Lives</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.58</td>
-            </tr>
-            <tr>
-                <td>Home/Action</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Apps/Banner</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共3项</td>
-                <td>3</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Apps/Category</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共8项</td>
-                <td>8</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Apps/Top Apps</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共6项</td>
-                <td>6</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Apps/Recommended Apps</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共6项</td>
-                <td>6</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Discovery/tab</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共4项</td>
-                <td>4</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Featured/Latest Movies & TV</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Featured/Latest News</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.58</td>
-            </tr>
-            <tr>
-                <td>Featured/Latest Trailers</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.58</td>
-            </tr>
-            <tr>
-                <td>Movies/Recommended</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Movies/Comedy</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Movies/Action</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Movies/Drama</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Movies/Crime</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Movies/Fantasy</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Movies/Family</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Movies/Western</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Movies/Documentary</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Recommended</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共28项</td>
-                <td>28</td>
-                <td>3.58</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Comedy</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.58</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Action</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.58</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Kids</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Drama</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Family</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Sci-Fi</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Reality TV</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.59</td>
-            </tr>
-            <tr>
-                <td>Live/Recommended</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.58</td>
-            </tr>
-            <tr>
-                <td>Live/Food</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.58</td>
-            </tr>
-            <tr>
-                <td>Free TV/Hero Banner</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共4项</td>
-                <td>4</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Free TV/Program Guide</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共1项</td>
-                <td>1</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Free TV/Live Now</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Free TV/Recommended Channels</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共12项</td>
-                <td>12</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Free TV/Trending Free Movies</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共30项</td>
-                <td>30</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Free TV/Free Apps</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>数据加载成功，共10项</td>
-                <td>10</td>
-                <td>3.57</td>
-            </tr>
-            <tr>
-                <td>Home/Banner详情页下载按钮(Whale TV+)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>下载功能正常 - 下载属性检测</td>
-                <td>-</td>
-                <td>3.36</td>
-            </tr>
-            <tr>
-                <td>Home/Banner内容卡片详情(Whale TV+)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>5.44</td>
-            </tr>
-            <tr>
-                <td>Home/Menu详情页下载按钮(Netflix)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>下载功能正常 - 下载属性检测</td>
-                <td>-</td>
-                <td>3.34</td>
-            </tr>
-            <tr>
-                <td>Home/Menu内容卡片详情(Netflix)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>5.42</td>
-            </tr>
-            <tr>
-                <td>Home/Prime Video 二级推荐内容卡片详情(Merv)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Home/Whale TV+二级推荐内容卡片详情(123GO!)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Home/Hot Movies内容卡片详情(Harvest)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.09</td>
-            </tr>
-            <tr>
-                <td>Home/Lives内容卡片详情(Watch the Oklahoma City Thunder vs. the Denver Nuggets live from Denver.)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Home/Action内容卡片详情(Regina Halmich vs. Stefan Raab - The Final Fight)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Apps/Banner详情页下载按钮(MUBI)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>下载功能正常 - 下载属性检测</td>
-                <td>-</td>
-                <td>3.34</td>
-            </tr>
-            <tr>
-                <td>Apps/Banner内容卡片详情(MUBI)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>5.42</td>
-            </tr>
-            <tr>
-                <td>Apps/Category内容卡片详情(Video)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片点击正常（警告框已处理，无详情模态框）</td>
-                <td>-</td>
-                <td>3.06</td>
-            </tr>
-            <tr>
-                <td>Apps/Top Apps详情页下载按钮(Netflix)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>下载功能正常 - 下载属性检测</td>
-                <td>-</td>
-                <td>3.34</td>
-            </tr>
-            <tr>
-                <td>Apps/Top Apps内容卡片详情(Netflix)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>5.42</td>
-            </tr>
-            <tr>
-                <td>Apps/Recommended Apps详情页下载按钮(MUBI)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>下载功能正常 - 下载属性检测</td>
-                <td>-</td>
-                <td>3.35</td>
-            </tr>
-            <tr>
-                <td>Apps/Recommended Apps内容卡片详情(MUBI)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>5.43</td>
-            </tr>
-            <tr>
-                <td>Discovery/tab内容卡片详情</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片点击正常（警告框已处理，无详情模态框）</td>
-                <td>-</td>
-                <td>3.05</td>
-            </tr>
-            <tr>
-                <td>Featured/Latest Movies & TV内容卡片详情(Late Shift)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Featured/Latest News内容卡片详情(Doomsday☄️The Decisive Battle for Pokrovsk and Kostiantynivka Rages On⚔️ Military Summary 2025.08.01)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Featured/Latest Trailers内容卡片详情(THE FANTASTIC FOUR FIRST STEPS (NEW 2025) Teaser)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Movies/Recommended内容卡片详情(Peacock)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Movies/Comedy内容卡片详情(Alle nicht ganz dicht)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Movies/Action内容卡片详情(Regina Halmich vs. Stefan Raab - The Final Fight)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Movies/Drama内容卡片详情(The Investigation)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Movies/Crime内容卡片详情(Landkrimi: Steirergift)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Movies/Fantasy内容卡片详情(Captain Faggotron Saves the Universe)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Movies/Family内容卡片详情(Max and the Senior Squad)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Movies/Western内容卡片详情(Vadogga)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Movies/Documentary内容卡片详情(Polizeiakademie)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Recommended内容卡片详情(Maxton Hall - Die Welt zwischen uns 1)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Action内容卡片详情(Elemental Nexus 1)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Kids内容卡片详情(The Adventures of the Young Marco Polo 2)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Drama内容卡片详情(Hackmask 1)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Family内容卡片详情(The Adventures of the Young Marco Polo 2)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.07</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Sci-Fi内容卡片详情(Curse of the Hawk 2)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>TV Shows/Reality TV内容卡片详情(Prince Charming 4)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Live/Recommended内容卡片详情(URBAN VIBES)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Live/Food内容卡片详情(123GO!)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Free TV/Hero Banner详情页下载按钮(Whale TV+)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>下载功能正常 - 下载属性检测</td>
-                <td>-</td>
-                <td>3.35</td>
-            </tr>
-            <tr>
-                <td>Free TV/Hero Banner内容卡片详情(Whale TV+)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>5.43</td>
-            </tr>
-            <tr>
-                <td>Free TV/Program Guide内容卡片详情</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片点击正常（警告框已处理，无详情模态框）</td>
-                <td>-</td>
-                <td>3.05</td>
-            </tr>
-            <tr>
-                <td>Free TV/Live Now内容卡片详情(URBAN VIBES)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Free TV/Recommended Channels内容卡片详情(123GO!)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Free TV/Trending Free Movies内容卡片详情(The Death (Change) of an Industry: The Evolution (Collapse) of Retailing)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>2.08</td>
-            </tr>
-            <tr>
-                <td>Free TV/Free Apps详情页下载按钮(Filmzie - Free Movie Streaming)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>下载功能正常 - 下载属性检测</td>
-                <td>-</td>
-                <td>3.35</td>
-            </tr>
-            <tr>
-                <td>Free TV/Free Apps内容卡片详情(Filmzie - Free Movie Streaming)</td>
-                <td class="status-pass">✅ 通过</td>
-                <td>卡片详情功能正常</td>
-                <td>-</td>
-                <td>5.43</td>
-            </tr>
-        </tbody>
-    </table>
 </body>
 </html>
