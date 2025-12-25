@@ -1029,25 +1029,43 @@ class TVDataTester:
     <title>TV Data 测试报告</title>
     <style>
         :root {{
+            /* 基础字体大小 */
+            font-size: 16px; /* 1rem = 16px */
+            
+            /* 颜色变量 */
             --color-primary: #FF0055;
             --color-text-primary: #19191C;
             --color-text-secondary: #525256;
             --color-text-tertiary: #A5A5A6;
             --color-bg-primary: #FFFFFF;
-            --color-bg-secondary: #FAFAFЕ;
+            --color-bg-secondary: #FAFAFE;
             --color-border: #C8C8CC;
             --color-divider: #DFE6EC;
             --color-shadow: rgba(144, 147, 153, 0.3);
-            --spacing-xs: 4px;
-            --spacing-sm: 8px;
-            --spacing-md: 16px;
-            --spacing-lg: 24px;
-            --spacing-xl: 32px;
-            --font-size-xs: 12px;
-            --font-size-sm: 14px;
-            --font-size-md: 16px;
-            --font-size-lg: 20px;
-            --font-size-xl: 24px;
+            
+            /* 弹性间距变量 (基于 rem) */
+            --spacing-xs: 0.25rem;  /* 4px */
+            --spacing-sm: 0.5rem;   /* 8px */
+            --spacing-md: 1rem;     /* 16px */
+            --spacing-lg: 1.5rem;   /* 24px */
+            --spacing-xl: 2rem;     /* 32px */
+            
+            /* 弹性字体变量 (使用 clamp) */
+            --font-size-xs: clamp(11px, 1.2vw, 12px);
+            --font-size-sm: clamp(13px, 1.5vw, 14px);
+            --font-size-md: clamp(15px, 2vw, 16px);
+            --font-size-lg: clamp(18px, 2.5vw, 20px);
+            --font-size-xl: clamp(20px, 3vw, 24px);
+            
+            /* 容器最大宽度 */
+            --container-max-width: min(100%, 1440px);
+        }}
+        
+        /* 移动端基础字体调整 */
+        @media (max-width: 768px) {{
+            :root {{
+                font-size: 14px; /* 移动端缩小基础字体 */
+            }}
         }}
         
         * {{
@@ -1057,7 +1075,7 @@ class TVDataTester:
         body {{
             font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", Inter, -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            padding: var(--spacing-lg);
+            padding: clamp(16px, 3vw, 24px);
             background-color: var(--color-bg-secondary);
             color: var(--color-text-primary);
             font-size: var(--font-size-sm);
@@ -1065,18 +1083,18 @@ class TVDataTester:
         }}
         
         .container {{
-            max-width: 1200px;
+            max-width: var(--container-max-width);
             margin: 0 auto;
             background-color: var(--color-bg-primary);
-            border-radius: 8px;
-            box-shadow: 0 2px 8px var(--color-shadow);
+            border-radius: 0.5rem;
+            box-shadow: 0 0.125rem 0.5rem var(--color-shadow);
             overflow: hidden;
         }}
         
         .header {{
             background: linear-gradient(135deg, var(--color-primary), rgba(255, 0, 85, 0.8));
             color: var(--color-bg-primary);
-            padding: var(--spacing-xl);
+            padding: clamp(24px, 4vw, 32px);
             text-align: center;
         }}
         
@@ -1093,12 +1111,12 @@ class TVDataTester:
         }}
         
         .content {{
-            padding: var(--spacing-xl);
+            padding: clamp(16px, 3vw, 32px);
         }}
         
         .summary {{
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
             gap: var(--spacing-lg);
             margin-bottom: var(--spacing-xl);
         }}
@@ -1106,20 +1124,20 @@ class TVDataTester:
         .stat-card {{
             background: var(--color-bg-primary);
             border: 1px solid var(--color-border);
-            padding: var(--spacing-lg);
-            border-radius: 8px;
+            padding: clamp(16px, 3vw, 24px);
+            border-radius: 0.5rem;
             text-align: center;
             transition: all 0.2s ease;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.1);
         }}
         
         .stat-card:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px var(--color-shadow);
+            transform: translateY(-0.125rem);
+            box-shadow: 0 0.25rem 0.75rem var(--color-shadow);
         }}
         
         .stat-number {{
-            font-size: 2.5em;
+            font-size: clamp(2em, 5vw, 2.5em);
             font-weight: 600;
             margin-bottom: var(--spacing-sm);
             line-height: 1;
@@ -1149,22 +1167,21 @@ class TVDataTester:
         }}
         
         .table-container {{
-            border-radius: 8px;
+            border-radius: 0.5rem;
             overflow: hidden;
             border: 1px solid var(--color-border);
         }}
         
         .results-table {{
             width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
+            border-collapse: collapse;
             background-color: var(--color-bg-primary);
         }}
         
         .results-table th {{
             background-color: var(--color-bg-secondary);
             color: var(--color-text-primary);
-            padding: var(--spacing-md);
+            padding: 0.75rem 1rem;
             font-weight: 600;
             font-size: var(--font-size-sm);
             text-align: left;
@@ -1172,15 +1189,19 @@ class TVDataTester:
         }}
         
         .results-table td {{
-            padding: var(--spacing-md);
+            padding: 0.75rem 1rem;
             border-bottom: 1px solid var(--color-divider);
             color: var(--color-text-primary);
             font-size: var(--font-size-sm);
             vertical-align: top;
         }}
         
-        .results-table tbody tr:hover {{
+        .results-table tbody tr:nth-child(even) {{
             background-color: var(--color-bg-secondary);
+        }}
+        
+        .results-table tbody tr:hover {{
+            background-color: rgba(255, 0, 85, 0.05);
         }}
         
         .results-table tbody tr:last-child td {{
@@ -1193,6 +1214,7 @@ class TVDataTester:
             display: inline-flex;
             align-items: center;
             gap: var(--spacing-xs);
+            white-space: nowrap;
         }}
         
         .status-fail {{
@@ -1201,17 +1223,24 @@ class TVDataTester:
             display: inline-flex;
             align-items: center;
             gap: var(--spacing-xs);
+            white-space: nowrap;
+        }}
+        
+        .results-table th:nth-child(2),
+        .results-table td:nth-child(2) {{
+            min-width: 80px;
+            white-space: nowrap;
         }}
         
         .test-name {{
             font-weight: 500;
-            max-width: 300px;
+            max-width: min(300px, 100%);
         }}
         
         .test-message {{
             color: var(--color-text-secondary);
             font-size: var(--font-size-xs);
-            max-width: 250px;
+            max-width: min(250px, 100%);
         }}
         
         .test-data {{
@@ -1228,37 +1257,31 @@ class TVDataTester:
         }}
         
         @media (max-width: 768px) {{
-            body {{
-                padding: var(--spacing-md);
-            }}
-            
-            .header {{
-                padding: var(--spacing-lg);
-            }}
-            
-            .content {{
-                padding: var(--spacing-lg);
-            }}
-            
             .summary {{
                 grid-template-columns: repeat(2, 1fr);
                 gap: var(--spacing-md);
             }}
             
-            .stat-card {{
-                padding: var(--spacing-md);
-            }}
-            
-            .stat-number {{
-                font-size: 2em;
-            }}
-            
             .table-container {{
                 overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }}
             
             .results-table {{
-                min-width: 800px;
+                min-width: min(800px, 100%);
+            }}
+        }}
+        
+        @media (min-width: 1025px) {{
+            .container {{
+                width: min(100%, 1440px);
+            }}
+        }}
+        
+        @media (min-width: 1440px) {{
+            .content {{
+                max-width: 1440px;
+                margin: 0 auto;
             }}
         }}
     </style>
