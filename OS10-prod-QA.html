@@ -872,9 +872,10 @@
                 return data.data.userToken;
             } catch (error) {
                 if (error.name === 'TypeError') {
-                    const networkError = new Error('HTTP/1.1 404 Not Found (CORS/Network Error)');
-                    networkError.errorCode = 404;
-                    networkError.errorMsg = 'HTTP/1.1 404 Not Found (CORS/Network Error)';
+                    // Network/CORS errors - cannot determine actual status code
+                    const networkError = new Error('Network Error (CORS/Connection Failed)');
+                    networkError.errorCode = 'NETWORK_ERROR';
+                    networkError.errorMsg = 'Network Error (CORS/Connection Failed)';
                     throw networkError;
                 }
                 throw error;
@@ -932,7 +933,7 @@
             });
 
             try {
-                const response = await fetch(`${API_BASE_URL}/auth-api/api/v1/auth/deviceSign`, {
+                const response = await fetch(`${API_BASE_URL}/auth-api/api/v1/auth/deviceSignXXXX`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
@@ -963,9 +964,10 @@
             } catch (error) {
                 // Network/CORS errors - Fetch throws TypeError
                 if (error.name === 'TypeError') {
-                    const networkError = new Error('HTTP/1.1 404 Not Found (CORS/Network Error)');
-                    networkError.errorCode = 404;
-                    networkError.errorMsg = 'HTTP/1.1 404 Not Found (CORS/Network Error)';
+                    // Network/CORS errors - cannot determine actual status code
+                    const networkError = new Error('Network Error (CORS/Connection Failed)');
+                    networkError.errorCode = 'NETWORK_ERROR';
+                    networkError.errorMsg = 'Network Error (CORS/Connection Failed)';
                     throw networkError;
                 }
                 throw error;
@@ -989,9 +991,10 @@
                 return data.data;
             } catch (error) {
                 if (error.name === 'TypeError') {
-                    const networkError = new Error('HTTP/1.1 404 Not Found (CORS/Network Error)');
-                    networkError.errorCode = 404;
-                    networkError.errorMsg = 'HTTP/1.1 404 Not Found (CORS/Network Error)';
+                    // Network/CORS errors - cannot determine actual status code
+                    const networkError = new Error('Network Error (CORS/Connection Failed)');
+                    networkError.errorCode = 'NETWORK_ERROR';
+                    networkError.errorMsg = 'Network Error (CORS/Connection Failed)';
                     throw networkError;
                 }
                 throw error;
@@ -1070,9 +1073,10 @@
                 return data.data[0];
             } catch (error) {
                 if (error.name === 'TypeError') {
-                    const networkError = new Error('HTTP/1.1 404 Not Found (CORS/Network Error)');
-                    networkError.errorCode = 404;
-                    networkError.errorMsg = 'HTTP/1.1 404 Not Found (CORS/Network Error)';
+                    // Network/CORS errors - cannot determine actual status code
+                    const networkError = new Error('Network Error (CORS/Connection Failed)');
+                    networkError.errorCode = 'NETWORK_ERROR';
+                    networkError.errorMsg = 'Network Error (CORS/Connection Failed)';
                     throw networkError;
                 }
                 throw error;
@@ -1343,9 +1347,10 @@
                 return data.data;
             } catch (error) {
                 if (error.name === 'TypeError') {
-                    const networkError = new Error('HTTP/1.1 404 Not Found (CORS/Network Error)');
-                    networkError.errorCode = 404;
-                    networkError.errorMsg = 'HTTP/1.1 404 Not Found (CORS/Network Error)';
+                    // Network/CORS errors - cannot determine actual status code
+                    const networkError = new Error('Network Error (CORS/Connection Failed)');
+                    networkError.errorCode = 'NETWORK_ERROR';
+                    networkError.errorMsg = 'Network Error (CORS/Connection Failed)';
                     throw networkError;
                 }
                 throw error;
@@ -1563,7 +1568,7 @@
                         activeDownloadRequest = null;
                         
                         console.error('Download error: Network error');
-                        alert('Download failed: HTTP/1.1 404 Not Found (CORS/Network Error)');
+                        alert('Download failed: Network Error (CORS/Connection Failed)');
                         $btn.prop('disabled', false).html(originalText);
                         $progress.hide();
                     });
@@ -1929,22 +1934,18 @@
                 }
                 
                 renderDeviceInfo(data.data);
-            } catch (error) {
-                if (error.name === 'TypeError') {
-                    const networkError = new Error('HTTP/1.1 404 Not Found (CORS/Network Error)');
-                    $('#deviceInfoContent').html(`
-                        <div class="alert alert-danger">
-                            ${networkError.message}
-                        </div>
-                    `);
-                } else {
+                } catch (error) {
+                    if (error.name === 'TypeError') {
+                        alert('Network Error (CORS/Connection Failed)');
+                    } else {
+                        alert('Failed to load device information: ' + error.message);
+                    }
                     $('#deviceInfoContent').html(`
                         <div class="alert alert-danger">
                             ${error.message || 'Failed to load device information'}
                         </div>
                     `);
                 }
-            }
         });
 
         // Render device information
@@ -2049,7 +2050,7 @@
                 await renderModalContent(wrappedData, modal);
             } catch (error) {
                 if (error.name === 'TypeError') {
-                    alert('HTTP/1.1 404 Not Found (CORS/Network Error)');
+                    alert('Network Error (CORS/Connection Failed)');
                 } else {
                     alert('Failed to load personalized recommendation content: ' + error.message);
                 }
@@ -2097,7 +2098,7 @@
                 await renderBannerAdContent(wrappedData, modal);
             } catch (error) {
                 if (error.name === 'TypeError') {
-                    alert('HTTP/1.1 404 Not Found (CORS/Network Error)');
+                    alert('Network Error (CORS/Connection Failed)');
                 } else {
                     alert('Failed to load banner AD recommendation content: ' + error.message);
                 }
@@ -2244,7 +2245,7 @@
                 await renderModalContent(wrappedData, modal);
             } catch (error) {
                 if (error.name === 'TypeError') {
-                    alert('HTTP/1.1 404 Not Found (CORS/Network Error)');
+                    alert('Network Error (CORS/Connection Failed)');
                 } else {
                     alert('Failed to load new personalized recommendation content: ' + error.message);
                 }
