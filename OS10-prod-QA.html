@@ -834,7 +834,7 @@
             return `${ACCESS_KEY}:${CryptoJS.enc.Base64.stringify(signature)}:${ts}`;
         }
 
-        // Get user token
+        // Get user token with Fetch API
         async function getUserToken() {
             const params = new URLSearchParams({
                 productId: GLOBAL_PARAMS.productId,
@@ -846,32 +846,38 @@
             });
 
             try {
-                const response = await $.ajax({
-                    url: `${API_BASE_URL}/user/device/login`,
+                const response = await fetch(`${API_BASE_URL}/user/device/login`, {
                     method: 'POST',
                     headers: {
                         'Authorization': generateAuthorizationHeader('/user/device/login'),
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    data: params.toString(),
-                    processData: false
+                    body: params.toString()
                 });
 
-                if (response.errorCode !== "0") {
+                if (!response.ok) {
+                    const httpError = new Error(`HTTP/1.1 ${response.status} ${response.statusText}`);
+                    httpError.errorCode = response.status;
+                    httpError.errorMsg = `HTTP/1.1 ${response.status} ${response.statusText}`;
+                    throw httpError;
+                }
+
+                const data = await response.json();
+                if (data.errorCode !== "0") {
                     const error = new Error('Failed to get user token');
-                    error.errorCode = response.errorCode;
-                    error.errorMsg = response.errorMsg || response.message;
+                    error.errorCode = data.errorCode;
+                    error.errorMsg = data.errorMsg || data.message;
                     throw error;
                 }
-                return response.data.userToken;
-            } catch (jqXHR) {
-                if (jqXHR.responseJSON) {
-                    const error = new Error(jqXHR.responseJSON.errorMsg || 'API Error');
-                    error.errorCode = jqXHR.responseJSON.errorCode;
-                    error.errorMsg = jqXHR.responseJSON.errorMsg;
-                    throw error;
+                return data.data.userToken;
+            } catch (error) {
+                if (error.name === 'TypeError') {
+                    const networkError = new Error('HTTP/1.1 404 Not Found (CORS/Network Error)');
+                    networkError.errorCode = 404;
+                    networkError.errorMsg = 'HTTP/1.1 404 Not Found (CORS/Network Error)';
+                    throw networkError;
                 }
-                throw jqXHR;
+                throw error;
             }
         }
 
@@ -919,52 +925,77 @@
             });
         });
 
-        // Get authentication token
+        // Get authentication token with Fetch API for better CORS error handling
         async function getToken() {
             const params = new URLSearchParams({
                 ...GLOBAL_PARAMS
             });
 
             try {
-                const response = await $.ajax({
-                    url: `${API_BASE_URL}/auth-api/api/v1/auth/deviceSign`,
+                const response = await fetch(`${API_BASE_URL}/auth-api/api/v1/auth/deviceSign`, {
                     method: 'POST',
-                    contentType: 'application/x-www-form-urlencoded',
-                    data: params.toString(),
-                    processData: false
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: params.toString()
                 });
 
-                if (response.errorCode !== "0") {
+                // Fetch API can access status even in some CORS scenarios
+                if (!response.ok) {
+                    const httpError = new Error(`HTTP/1.1 ${response.status} ${response.statusText}`);
+                    httpError.errorCode = response.status;
+                    httpError.errorMsg = `HTTP/1.1 ${response.status} ${response.statusText}`;
+                    throw httpError;
+                }
+
+                const data = await response.json();
+                if (data.errorCode !== "0") {
                     const error = new Error('Failed to get token');
-                    error.errorCode = response.errorCode;
-                    error.errorMsg = response.errorMsg || response.message;
+                    error.errorCode = data.errorCode;
+                    error.errorMsg = data.errorMsg || data.message;
                     throw error;
                 }
 
                 // Save to global variable
                 lockedClientIp = GLOBAL_PARAMS.clientIp;
                 
-                return response.data.token;
-            } catch (jqXHR) {
-                if (jqXHR.responseJSON) {
-                    const error = new Error(jqXHR.responseJSON.errorMsg || 'API Error');
-                    error.errorCode = jqXHR.responseJSON.errorCode;
-                    error.errorMsg = jqXHR.responseJSON.errorMsg;
-                    throw error;
+                return data.data.token;
+            } catch (error) {
+                // Network/CORS errors - Fetch throws TypeError
+                if (error.name === 'TypeError') {
+                    const networkError = new Error('HTTP/1.1 404 Not Found (CORS/Network Error)');
+                    networkError.errorCode = 404;
+                    networkError.errorMsg = 'HTTP/1.1 404 Not Found (CORS/Network Error)';
+                    throw networkError;
                 }
-                throw jqXHR;
+                throw error;
             }
         }
 
-        // Fetch column data
+        // Fetch column data with Fetch API
         async function getColumns(token) {
-            const response = await $.ajax({
-                url: `${API_BASE_URL}/sp/api/device/v1/column?token=${token}`,
-                method: 'GET'
-            });
+            try {
+                const response = await fetch(`${API_BASE_URL}/sp/api/device/v1/column?token=${token}`);
+                
+                if (!response.ok) {
+                    const httpError = new Error(`HTTP/1.1 ${response.status} ${response.statusText}`);
+                    httpError.errorCode = response.status;
+                    httpError.errorMsg = `HTTP/1.1 ${response.status} ${response.statusText}`;
+                    throw httpError;
+                }
 
-            if (response.errorCode !== 0) throw new Error('Failed to fetch columns');
-            return response.data;
+                const data = await response.json();
+                if (data.errorCode !== 0) throw new Error('Failed to fetch columns');
+                return data.data;
+            } catch (error) {
+                if (error.name === 'TypeError') {
+                    const networkError = new Error('HTTP/1.1 404 Not Found (CORS/Network Error)');
+                    networkError.errorCode = 404;
+                    networkError.errorMsg = 'HTTP/1.1 404 Not Found (CORS/Network Error)';
+                    throw networkError;
+                }
+                throw error;
+            }
         }
 
         // Render tree structure
@@ -1020,17 +1051,32 @@
             $tree.append($root);
         }
 
-        // Fetch column content
+        // Fetch column content with Fetch API
         async function getColumnContent(columnId) {
-            const response = await $.ajax({
-                url: `${API_BASE_URL}/sp/api/device/v1/column/content?token=${globalToken}&columnIds=${columnId}`,
-                method: 'GET'
-            });
+            try {
+                const response = await fetch(`${API_BASE_URL}/sp/api/device/v1/column/content?token=${globalToken}&columnIds=${columnId}`);
+                
+                if (!response.ok) {
+                    const httpError = new Error(`HTTP/1.1 ${response.status} ${response.statusText}`);
+                    httpError.errorCode = response.status;
+                    httpError.errorMsg = `HTTP/1.1 ${response.status} ${response.statusText}`;
+                    throw httpError;
+                }
 
-            if (response.errorCode !== 0 || !response.data?.[0]) {
-                throw new Error('Failed to fetch content');
+                const data = await response.json();
+                if (data.errorCode !== 0 || !data.data?.[0]) {
+                    throw new Error('Failed to fetch content');
+                }
+                return data.data[0];
+            } catch (error) {
+                if (error.name === 'TypeError') {
+                    const networkError = new Error('HTTP/1.1 404 Not Found (CORS/Network Error)');
+                    networkError.errorCode = 404;
+                    networkError.errorMsg = 'HTTP/1.1 404 Not Found (CORS/Network Error)';
+                    throw networkError;
+                }
+                throw error;
             }
-            return response.data[0];
         }
 
         // Show loading state
@@ -1277,18 +1323,33 @@
         }
     </script>
     <script type="text/javascript">
-        // Add new resource details related methods
+        // Get resource detail with Fetch API
         async function getResourceDetail(resourceType, value) {
             const encodedValue = encodeURIComponent(value);
             const url = `${API_BASE_URL}/sp/api/device/v1/column/resourceDetail?token=${globalToken}&resourceType=${resourceType}&value=${encodedValue}&needPoster=true&posterWidth=1280&needAward=true`;
             
-            const response = await $.ajax({
-                url: url,
-                method: 'GET'
-            });
+            try {
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    const httpError = new Error(`HTTP/1.1 ${response.status} ${response.statusText}`);
+                    httpError.errorCode = response.status;
+                    httpError.errorMsg = `HTTP/1.1 ${response.status} ${response.statusText}`;
+                    throw httpError;
+                }
 
-            if (response.errorCode !== 0) throw new Error('Failed to fetch resource details');
-            return response.data;
+                const data = await response.json();
+                if (data.errorCode !== 0) throw new Error('Failed to fetch resource details');
+                return data.data;
+            } catch (error) {
+                if (error.name === 'TypeError') {
+                    const networkError = new Error('HTTP/1.1 404 Not Found (CORS/Network Error)');
+                    networkError.errorCode = 404;
+                    networkError.errorMsg = 'HTTP/1.1 404 Not Found (CORS/Network Error)';
+                    throw networkError;
+                }
+                throw error;
+            }
         }
 
         function showDetailLoading(modal) {
@@ -1424,54 +1485,42 @@
                     
                     const downloadUrl = `${API_BASE_URL}/sp/api/device/v1/app/download?token=${globalToken}&vsId=${vsId}`;
                     
-                    // Use jQuery AJAX with custom XMLHttpRequest for progress tracking
-                    activeDownloadRequest = $.ajax({
-                        url: downloadUrl,
-                        method: 'GET',
-                        xhr: function() {
-                            const xhr = new XMLHttpRequest();
+                    // Use Fetch API with XMLHttpRequest for progress tracking
+                    const xhr = new XMLHttpRequest();
+                    activeDownloadRequest = xhr;
+                    
+                    // Track download progress
+                    xhr.addEventListener('progress', function(e) {
+                        if (e.lengthComputable) {
+                            const percent = Math.round((e.loaded / e.total) * 100);
+                            const totalMB = (e.total / 1024 / 1024).toFixed(1);
+                            const loadedMB = (e.loaded / 1024 / 1024).toFixed(1);
                             
-                            // Track download progress
-                            xhr.addEventListener('progress', function(e) {
-                                if (e.lengthComputable) {
-                                    const percent = Math.round((e.loaded / e.total) * 100);
-                                    const totalMB = (e.total / 1024 / 1024).toFixed(1);
-                                    const loadedMB = (e.loaded / 1024 / 1024).toFixed(1);
-                                    
-                                    // Update progress bar
-                                    $progressBar.css('width', percent + '%').attr('aria-valuenow', percent);
-                                    
-                                    // Calculate speed
-                                    const elapsed = (Date.now() - startTime) / 1000;
-                                    const speed = e.loaded / elapsed;
-                                    let speedText;
-                                    if (speed > 1024 * 1024) {
-                                        speedText = (speed / 1024 / 1024).toFixed(1) + ' MB/s';
-                                    } else {
-                                        speedText = (speed / 1024).toFixed(0) + ' KB/s';
-                                    }
-                                    
-                                    $speed.text(speedText);
-                                    $size.text(`${loadedMB} / ${totalMB} MB`);
-                                }
-                            });
+                            // Update progress bar
+                            $progressBar.css('width', percent + '%').attr('aria-valuenow', percent);
                             
-                            return xhr;
-                        },
-                        xhrFields: {
-                            responseType: 'blob'
-                        },
-                        beforeSend: function() {
-                            $progress.show();
-                            $btn.html('<i class="bi bi-download"></i> Downloading...');
-                            startTime = Date.now();
-                        },
-                        success: function(data, textStatus, xhr) {
-                            // Clear active request reference
-                            activeDownloadRequest = null;
+                            // Calculate speed
+                            const elapsed = (Date.now() - startTime) / 1000;
+                            const speed = e.loaded / elapsed;
+                            let speedText;
+                            if (speed > 1024 * 1024) {
+                                speedText = (speed / 1024 / 1024).toFixed(1) + ' MB/s';
+                            } else {
+                                speedText = (speed / 1024).toFixed(0) + ' KB/s';
+                            }
                             
+                            $speed.text(speedText);
+                            $size.text(`${loadedMB} / ${totalMB} MB`);
+                        }
+                    });
+                    
+                    xhr.addEventListener('load', function() {
+                        // Clear active request reference
+                        activeDownloadRequest = null;
+                        
+                        if (xhr.status >= 200 && xhr.status < 300) {
                             // Handle blob response directly
-                            const blob = new Blob([data]);
+                            const blob = new Blob([xhr.response]);
                             const url = window.URL.createObjectURL(blob);
                             const link = document.createElement('a');
                             link.href = url;
@@ -1487,44 +1536,60 @@
                                 $progress.hide();
                                 $progressBar.css('width', '0%');
                             }, 3000);
-                        },
-                        error: function(xhr, status, error) {
-                            // Clear active request reference
-                            activeDownloadRequest = null;
-                            
-                            // Handle user cancellation
-                            if (status === 'abort') {
-                                console.log('Download cancelled by user');
-                                $btn.html('<i class="bi bi-x-circle"></i> Cancelled');
+                        } else if (xhr.status === 302 || xhr.status === 301) {
+                            const location = xhr.getResponseHeader('Location');
+                            if (location) {
+                                // Open download URL in new tab
+                                window.open(location, '_blank');
+                                $btn.html('<i class="bi bi-check-circle"></i> Download Started!');
                                 setTimeout(() => {
                                     $btn.prop('disabled', false).html(originalText);
                                     $progress.hide();
-                                    $progressBar.css('width', '0%');
-                                }, 2000);
+                                }, 3000);
                                 return;
                             }
-                            
-                            // Handle redirect responses
-                            if (xhr.status === 302 || xhr.status === 301) {
-                                const location = xhr.getResponseHeader('Location');
-                                if (location) {
-                                    // Open download URL in new tab
-                                    window.open(location, '_blank');
-                                    $btn.html('<i class="bi bi-check-circle"></i> Download Started!');
-                                    setTimeout(() => {
-                                        $btn.prop('disabled', false).html(originalText);
-                                        $progress.hide();
-                                    }, 3000);
-                                    return;
-                                }
-                            }
-                            
-                            console.error('Download error:', error);
-                            alert('Download failed: ' + (error || 'Network error'));
+                        } else {
+                            // HTTP error with status code
+                            const statusText = xhr.statusText || 'Unknown Error';
+                            console.error('Download error:', `HTTP/1.1 ${xhr.status} ${statusText}`);
+                            alert(`Download failed: HTTP/1.1 ${xhr.status} ${statusText}`);
                             $btn.prop('disabled', false).html(originalText);
                             $progress.hide();
                         }
                     });
+                    
+                    xhr.addEventListener('error', function() {
+                        // Clear active request reference
+                        activeDownloadRequest = null;
+                        
+                        console.error('Download error: Network error');
+                        alert('Download failed: HTTP/1.1 404 Not Found (CORS/Network Error)');
+                        $btn.prop('disabled', false).html(originalText);
+                        $progress.hide();
+                    });
+                    
+                    xhr.addEventListener('abort', function() {
+                        // Clear active request reference
+                        activeDownloadRequest = null;
+                        
+                        console.log('Download cancelled by user');
+                        $btn.html('<i class="bi bi-x-circle"></i> Cancelled');
+                        setTimeout(() => {
+                            $btn.prop('disabled', false).html(originalText);
+                            $progress.hide();
+                            $progressBar.css('width', '0%');
+                        }, 2000);
+                    });
+                    
+                    // Setup and send request
+                    xhr.open('GET', downloadUrl);
+                    xhr.responseType = 'blob';
+                    
+                    $progress.show();
+                    $btn.html('<i class="bi bi-download"></i> Downloading...');
+                    startTime = Date.now();
+                    
+                    xhr.send();
                     
                 } catch (error) {
                     console.error('Download error:', error);
@@ -1842,29 +1907,43 @@
         }
     </script>
     <script>
-        // Add click handler for device info button
+        // Device info with Fetch API
         $('#deviceInfoBtn').click(async () => {
             try {
                 const modal = new bootstrap.Modal('#deviceInfoModal');
                 $('#deviceInfoContent').html('<div class="text-center py-4"><div class="spinner-border"></div></div>');
                 modal.show();
                 
-                const response = await $.ajax({
-                    url: `${API_BASE_URL}/sp/api/device/v1/column/tokenDetail?token=${globalToken}`,
-                    method: 'GET'
-                });
+                const response = await fetch(`${API_BASE_URL}/sp/api/device/v1/column/tokenDetail?token=${globalToken}`);
+                
+                if (!response.ok) {
+                    const httpError = new Error(`HTTP/1.1 ${response.status} ${response.statusText}`);
+                    httpError.errorCode = response.status;
+                    httpError.errorMsg = `HTTP/1.1 ${response.status} ${response.statusText}`;
+                    throw httpError;
+                }
 
-                if (response.errorCode !== 0 || !response.data) {
+                const data = await response.json();
+                if (data.errorCode !== 0 || !data.data) {
                     throw new Error('Failed to fetch device info');
                 }
                 
-                renderDeviceInfo(response.data);
+                renderDeviceInfo(data.data);
             } catch (error) {
-                $('#deviceInfoContent').html(`
-                    <div class="alert alert-danger">
-                        ${error.message || 'Failed to load device information'}
-                    </div>
-                `);
+                if (error.name === 'TypeError') {
+                    const networkError = new Error('HTTP/1.1 404 Not Found (CORS/Network Error)');
+                    $('#deviceInfoContent').html(`
+                        <div class="alert alert-danger">
+                            ${networkError.message}
+                        </div>
+                    `);
+                } else {
+                    $('#deviceInfoContent').html(`
+                        <div class="alert alert-danger">
+                            ${error.message || 'Failed to load device information'}
+                        </div>
+                    `);
+                }
             }
         });
 
@@ -1936,18 +2015,21 @@
             }
         });
 
-        // Personalized recommendation
+        // Personalized recommendation with Fetch API
         $('#recommendBtn').click(async () => {
             try {
                 const modal = new bootstrap.Modal('#contentModal');
                 showLoading(modal);
                 
-                const response = await $.ajax({
-                    url: `${API_BASE_URL}/sp/api/device/v1/video/recommend?token=${globalToken}&userToken=${globalUserToken}&videoType=MOVIE&size=30&needPoster=true&imgStyle=0&imgWidth=800`,
-                    method: 'GET'
-                });
+                const response = await fetch(`${API_BASE_URL}/sp/api/device/v1/video/recommend?token=${globalToken}&userToken=${globalUserToken}&videoType=MOVIE&size=30&needPoster=true&imgStyle=0&imgWidth=800`);
+                
+                if (!response.ok) {
+                    const httpError = new Error(`HTTP/1.1 ${response.status} ${response.statusText}`);
+                    throw httpError;
+                }
 
-                if (response.errorCode !== 0 || !response.data) {
+                const data = await response.json();
+                if (data.errorCode !== 0 || !data.data) {
                     throw new Error('Failed to obtain personalized recommendation content');
                 }
 
@@ -1955,7 +2037,7 @@
                 const wrappedData = {
                     content: {
                         name: "Personalized recommendations",
-                        dataList: response.data.map(item => ({
+                        dataList: data.data.map(item => ({
                             ...item,
                             // Keeping data structure consistent
                             value: item.value || JSON.stringify({ id: item.id, objectType: "MOVIE" }),
@@ -1966,23 +2048,30 @@
 
                 await renderModalContent(wrappedData, modal);
             } catch (error) {
-                alert('Failed to load personalized recommendation content: ' + error.message);
+                if (error.name === 'TypeError') {
+                    alert('HTTP/1.1 404 Not Found (CORS/Network Error)');
+                } else {
+                    alert('Failed to load personalized recommendation content: ' + error.message);
+                }
                 bootstrap.Modal.getInstance('#contentModal').hide();
             }
         });
 
-        // Video Type Recommendation
+        // Video Type Recommendation with Fetch API
         $('#videoTypeRecommendBtn').click(async () => {
             try {
                 const modal = new bootstrap.Modal('#contentModal');
                 showLoading(modal);
                 
-                const response = await $.ajax({
-                    url: `${API_BASE_URL}/sp/api/device/v1/video/recommend/ad?token=${globalToken}&searchType=REC_CHANNEL&size=1&scopeId=1&typeWeight=100&supportAD=true&moreFields=description,tags,source,background,cover&posterShape&posterWidth&posterHeight&iconShape&iconWidth&iconHeight&position=LAUNCHER&userToken=${globalUserToken}`,
-                    method: 'GET'
-                });
+                const response = await fetch(`${API_BASE_URL}/sp/api/device/v1/video/recommend/ad?token=${globalToken}&searchType=REC_CHANNEL&size=1&scopeId=1&typeWeight=100&supportAD=true&moreFields=description,tags,source,background,cover&posterShape&posterWidth&posterHeight&iconShape&iconWidth&iconHeight&position=LAUNCHER&userToken=${globalUserToken}`);
+                
+                if (!response.ok) {
+                    const httpError = new Error(`HTTP/1.1 ${response.status} ${response.statusText}`);
+                    throw httpError;
+                }
 
-                if (response.errorCode !== 0 || !response.data) {
+                const data = await response.json();
+                if (data.errorCode !== 0 || !data.data) {
                     throw new Error('Failed to obtain banner AD recommendation content');
                 }
 
@@ -1990,7 +2079,7 @@
                 const wrappedData = {
                     content: {
                         name: "Banner AD Recommendation",
-                        dataList: response.data.map(item => ({
+                        dataList: data.data.map(item => ({
                             ...item,
                             icon: item.moreInfo?.cover,
                             briefDesc: item.moreInfo?.description,
@@ -2007,23 +2096,30 @@
 
                 await renderBannerAdContent(wrappedData, modal);
             } catch (error) {
-                alert('Failed to load banner AD recommendation content: ' + error.message);
+                if (error.name === 'TypeError') {
+                    alert('HTTP/1.1 404 Not Found (CORS/Network Error)');
+                } else {
+                    alert('Failed to load banner AD recommendation content: ' + error.message);
+                }
                 bootstrap.Modal.getInstance('#contentModal').hide();
             }
         });
 
-        // New Personalized recommendations
+        // New Personalized recommendations with Fetch API
         $('#newPersonalizedRecommendBtn').click(async () => {
             try {
                 const modal = new bootstrap.Modal('#contentModal');
                 showLoading(modal);
                 
-                const response = await $.ajax({
-                    url: `${API_BASE_URL}/sp/api/device/v1/video/recommend/choices?token=${globalToken}&objectTypes=REC_CHANNEL,REC_PROGRAM,MOVIE,SEASON&size=30&moreFields=description,backgroud,releaseTime,categories,scores,contributors,bindSource,views,source,tags,rating,defaultLangCode,updateTime,series,seasonNumber,episodeCount,duration,liveStartTime,liveEndTime,liveState&posterShape&posterWidth&posterHeight&iconShape=HORIZONTAL&iconWidth&iconHeight&userToken=${globalUserToken}`,
-                    method: 'GET'
-                });
+                const response = await fetch(`${API_BASE_URL}/sp/api/device/v1/video/recommend/choices?token=${globalToken}&objectTypes=REC_CHANNEL,REC_PROGRAM,MOVIE,SEASON&size=30&moreFields=description,backgroud,releaseTime,categories,scores,contributors,bindSource,views,source,tags,rating,defaultLangCode,updateTime,series,seasonNumber,episodeCount,duration,liveStartTime,liveEndTime,liveState&posterShape&posterWidth&posterHeight&iconShape=HORIZONTAL&iconWidth&iconHeight&userToken=${globalUserToken}`);
+                
+                if (!response.ok) {
+                    const httpError = new Error(`HTTP/1.1 ${response.status} ${response.statusText}`);
+                    throw httpError;
+                }
 
-                if (response.errorCode !== 0 || !response.data) {
+                const data = await response.json();
+                if (data.errorCode !== 0 || !data.data) {
                     throw new Error('Failed to obtain new personalized recommendation content');
                 }
 
@@ -2147,7 +2243,11 @@
 
                 await renderModalContent(wrappedData, modal);
             } catch (error) {
-                alert('Failed to load new personalized recommendation content: ' + error.message);
+                if (error.name === 'TypeError') {
+                    alert('HTTP/1.1 404 Not Found (CORS/Network Error)');
+                } else {
+                    alert('Failed to load new personalized recommendation content: ' + error.message);
+                }
                 bootstrap.Modal.getInstance('#contentModal').hide();
             }
         });
