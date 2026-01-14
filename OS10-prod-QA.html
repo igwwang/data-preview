@@ -863,6 +863,15 @@
                 }
 
                 const data = await response.json();
+                if (data.errorCode === "650202") {
+                    throw new Error('The whale user does not exist');
+                }
+                if (data.errorCode === "650203") {
+                    throw new Error('The password is wrong');
+                }
+                if (data.errorCode === "650206") {
+                    throw new Error('The whale user is not in the active state. Please contact the administrator');
+                }
                 if (data.errorCode !== "0") {
                     const error = new Error('Failed to get user token');
                     error.errorCode = data.errorCode;
@@ -987,6 +996,9 @@
                 }
 
                 const data = await response.json();
+                if (data.errorCode === "1000" || data.errorCode === 1000) {
+                    throw new Error('Token expired');
+                }
                 if (data.errorCode !== 0) throw new Error('Failed to fetch columns');
                 return data.data;
             } catch (error) {
@@ -1067,6 +1079,9 @@
                 }
 
                 const data = await response.json();
+                if (data.errorCode === "1000" || data.errorCode === 1000) {
+                    throw new Error('Token expired');
+                }
                 if (data.errorCode !== 0 || !data.data?.[0]) {
                     throw new Error('Failed to fetch content');
                 }
@@ -1343,6 +1358,9 @@
                 }
 
                 const data = await response.json();
+                if (data.errorCode === "1000" || data.errorCode === 1000) {
+                    throw new Error('Token expired');
+                }
                 if (data.errorCode !== 0) throw new Error('Failed to fetch resource details');
                 return data.data;
             } catch (error) {
@@ -1929,6 +1947,9 @@
                 }
 
                 const data = await response.json();
+                if (data.errorCode === "1000" || data.errorCode === 1000) {
+                    throw new Error('Token expired');
+                }
                 if (data.errorCode !== 0 || !data.data) {
                     throw new Error('Failed to fetch device info');
                 }
@@ -2030,6 +2051,9 @@
                 }
 
                 const data = await response.json();
+                if (data.errorCode === "1000" || data.errorCode === 1000) {
+                    throw new Error('Token expired');
+                }
                 if (data.errorCode !== 0 || !data.data) {
                     throw new Error('Failed to obtain personalized recommendation content');
                 }
@@ -2072,6 +2096,9 @@
                 }
 
                 const data = await response.json();
+                if (data.errorCode === "1000" || data.errorCode === 1000) {
+                    throw new Error('Token expired');
+                }
                 if (data.errorCode !== 0 || !data.data) {
                     throw new Error('Failed to obtain banner AD recommendation content');
                 }
@@ -2120,6 +2147,9 @@
                 }
 
                 const data = await response.json();
+                if (data.errorCode === "1000" || data.errorCode === 1000) {
+                    throw new Error('Token expired');
+                }
                 if (data.errorCode !== 0 || !data.data) {
                     throw new Error('Failed to obtain new personalized recommendation content');
                 }
