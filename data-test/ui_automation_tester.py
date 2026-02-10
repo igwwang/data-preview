@@ -714,6 +714,9 @@ class TVDataTester:
                     # 检查视频元素加载
                     self._wait_for_video_playback()
                     
+                    # 让播放器播放20秒
+                    time.sleep(20)
+                    
                     # 测试视频播放器功能
                     player_results = self._test_video_player_features(context_name)
                     results.extend(player_results)
@@ -728,10 +731,8 @@ class TVDataTester:
                         time.sleep(1)
                     
                     execution_time = time.time() - start_time
-                    play_count = len(valid_btns)
-                    message = f"播放功能正常 (发现{play_count}个Play按钮，测试第1个)"
-                    results.append(TestResult(test_name, True, message, 0, execution_time))
-                    logger.info(f"✅ {test_name}: {message} ({execution_time:.2f}s)")
+                    results.append(TestResult(test_name, True, "播放功能正常", 0, execution_time))
+                    logger.info(f"✅ {test_name}: 播放功能正常 ({execution_time:.2f}s)")
                     
                 except Exception as e:
                     execution_time = time.time() - start_time
