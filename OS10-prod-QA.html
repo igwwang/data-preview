@@ -1131,21 +1131,37 @@
                     const $col = $('<div>').addClass('col-12 col-md-6 col-lg-4 mb-4');
                     const $card = $('<div>').addClass('card h-100 shadow-sm');
                     
-                    // Add overlay container
-                    const $overlay = $('<div>').addClass('card-img-overlay');
-                    
-                    // Parse objectType
+                    // Parse objectType based on rsType
                     let objectType = 'N/A';
-                    try {
-                        const valueObj = JSON.parse(item.value);
-                        objectType = valueObj.objectType || 'N/A';
-                    } catch(e) {
-                        console.warn('Failed to parse value:', item.value);
+                    if (item.rsType === 6) {
+                        objectType = 'APP';
+                    } else if (item.rsType === 7) {
+                        objectType = 'APP CATEGORY';
+                    } else if (item.rsType === 2) {
+                        objectType = 'TEXT';
+                    } else if (item.rsType === 1) {
+                        objectType = 'PICTURE';
+                    } else if (item.rsType === 3) {
+                        objectType = 'HTTP LINK';
+                    } else if (item.rsType === 4) {
+                        objectType = 'VIDEO LINK';
+                    } else if (item.rsType === 5) {
+                        objectType = 'AD';
+                    } else if (item.rsType === 32) {
+                        try {
+                            const valueObj = JSON.parse(item.value);
+                            objectType = valueObj.objectType || 'N/A';
+                        } catch(e) {
+                            console.warn('Failed to parse value:', item.value);
+                        }
+                    } else {
+                        try {
+                            const valueObj = JSON.parse(item.value);
+                            objectType = valueObj.objectType || 'N/A';
+                        } catch(e) {
+                            console.warn('Failed to parse value:', item.value);
+                        }
                     }
-                    
-                    $overlay.append(
-                        $('<span>').addClass('type-badge').text(objectType)
-                    );
                     
                     // Image section
                     if (item.icon) {
@@ -1159,20 +1175,20 @@
                             })
                             .appendTo($imgContainer);
                         
-                        try {
-                            const valueObj = JSON.parse(item.value);
-                            if (valueObj && valueObj.objectType) {
-                                const $overlay = $('<div>').addClass('card-img-overlay');
-                                $overlay.append(
-                                    $('<span>').addClass('type-badge').text(valueObj.objectType)
-                                );
-                                $imgContainer.append($overlay);
-                            }
-                        } catch(e) {
-                            console.warn('Failed to parse value:', item.value);
-                        }
+                        const $overlay = $('<div>').addClass('card-img-overlay');
+                        $overlay.append(
+                            $('<span>').addClass('type-badge').text(objectType)
+                        );
+                        $imgContainer.append($overlay);
 
                         $card.append($imgContainer);
+                    } else if (item.rsType === 2) {
+                        // For rsType=2 with empty icon, display value as text
+                        const $textContainer = $('<div>').addClass('p-4 text-center');
+                        $textContainer.append(
+                            $('<p>').addClass('text-muted mb-0').css('font-size', '0.85em').text(item.value || 'N/A')
+                        );
+                        $card.append($textContainer);
                     }
 
                     // Content body
@@ -1190,30 +1206,186 @@
                         );
                     }
 
-                    // Time display part
-                    if (item.releaseTime > 0) {
-                        $body.append(
-                            $('<p>')
-                                .addClass('card-text text-muted mt-2') // Add mt-2 to increase spacing
-                                .css('font-size', '0.85em')
-                                .text(`Release Time(UTC): ${formatUTCDate(item.releaseTime)}`)
-                        );
-                    }
+                    // Special handling for rsType=31
+                    if (item.rsType === 31) {
+                        // Duration display
+                        if (item.duration) {
+                            const durationMinutes = Math.floor(item.duration / 60);
+                            const durationSeconds = item.duration % 60;
+                            $body.append(
+                                $('<p>')
+                                    .addClass('card-text text-secondary mt-2')
+                                    .css('font-size', '0.85em')
+                                    .html(`<strong>Duration:</strong> ${durationMinutes}m ${durationSeconds}s`)
+                            );
+                        }
+                        
+                        // Live start time
+                        if (item.liveStartTime) {
+                            const startTime = new Date(parseInt(item.liveStartTime)).toLocaleString();
+                            $body.append(
+                                $('<p>')
+                                    .addClass('card-text text-muted mt-2')
+                                    .css('font-size', '0.85em')
+                                    .html(`<strong>Start Time:</strong> ${startTime}`)
+                            );
+                        }
+                        
+                        // Live end time
+                        if (item.liveEndTime) {
+                            const endTime = new Date(parseInt(item.liveEndTime)).toLocaleString();
+                            $body.append(
+                                $('<p>')
+                                    .addClass('card-text text-muted')
+                                    .css('font-size', '0.85em')
+                                    .html(`<strong>End Time:</strong> ${endTime}`)
+                            );
+                        }
+                        
+                        // Live state
+                        if (typeof item.liveState !== 'undefined') {
+                            const stateText = item.liveState === 0 ? 'Coming Soon' : item.liveState === 1 ? 'Live Now' : 'Unknown';
+                            const stateClass = item.liveState === 0 ? 'text-muted' : item.liveState === 1 ? 'text-success' : 'text-muted';
+                            $body.append(
+                                $('<p>')
+                                    .addClass(`card-text ${stateClass}`)
+                                    .css('font-size', '0.85em')
+                                    .html(`<strong>Status:</strong> ${stateText}`)
+                            );
+                        }
+                        
+                        // Source icon display
+                        if (item.source && item.source.icon) {
+                            $body.append(
+                                $('<div>')
+                                    .addClass('mt-2')
+                                    .html(`
+                                        <div class="d-flex align-items-center gap-2">
+                                            <small class="text-muted"><strong>Source:</strong></small>
+                                            <img src="${item.source.icon}" alt="${item.source.name || 'Source'}" 
+                                                 style="width:24px;height:24px;border-radius:4px;" 
+                                                 title="${item.source.name || 'Source'}">
+                                            <small class="text-muted">${item.source.name || 'Unknown'}</small>
+                                        </div>
+                                    `)
+                            );
+                        }
+                    } else if (item.rsType === 32) {
+                        // Special handling for rsType=32 (Match Schedule)
+                        // Match ID
+                        if (item.matchId) {
+                            $body.append(
+                                $('<p>')
+                                    .addClass('card-text text-secondary mt-2')
+                                    .css('font-size', '0.85em')
+                                    .html(`<strong>Match ID:</strong> ${item.matchId}`)
+                            );
+                        }
+                        
+                        // Live start time
+                        if (item.liveStartTime) {
+                            const startTime = new Date(parseInt(item.liveStartTime)).toLocaleString();
+                            $body.append(
+                                $('<p>')
+                                    .addClass('card-text text-muted mt-2')
+                                    .css('font-size', '0.85em')
+                                    .html(`<strong>Start Time:</strong> ${startTime}`)
+                            );
+                        }
+                        
+                        // Live state
+                        if (typeof item.liveState !== 'undefined') {
+                            const stateText = item.liveState === 0 ? 'Coming Soon' : item.liveState === 1 ? 'Live Now' : 'Unknown';
+                            const stateClass = item.liveState === 0 ? 'text-warning' : item.liveState === 1 ? 'text-success' : 'text-muted';
+                            $body.append(
+                                $('<p>')
+                                    .addClass(`card-text ${stateClass}`)
+                                    .css('font-size', '0.85em')
+                                    .html(`<strong>Status:</strong> ${stateText}`)
+                            );
+                        }
+                        
+                        // Group info display
+                        if (item.groupInfo && Object.keys(item.groupInfo).length > 0) {
+                            // Group name
+                            if (item.groupInfo.name) {
+                                $body.append(
+                                    $('<p>')
+                                        .addClass('card-text text-primary mt-2')
+                                        .css('font-size', '0.85em')
+                                        .html(`<strong>Group:</strong> ${item.groupInfo.name}`)
+                                );
+                            }
+                            
+                            // Teams display
+                            const homeTeam = item.groupInfo.homeTeam || 'TBD';
+                            const awayTeam = item.groupInfo.awayTeam || 'TBD';
+                            
+                            $body.append(
+                                $('<div>')
+                                    .addClass('mt-2')
+                                    .html(`
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="d-flex align-items-center gap-2">
+                                                ${item.groupInfo.homeTeamIcon ? `<img src="${item.groupInfo.homeTeamIcon}" alt="${homeTeam}" style="width:24px;height:24px;object-fit:contain;" title="${homeTeam}">` : ''}
+                                                <small class="text-muted"><strong>${homeTeam}</strong></small>
+                                            </div>
+                                            <small class="text-muted mx-2">VS</small>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <small class="text-muted"><strong>${awayTeam}</strong></small>
+                                                ${item.groupInfo.awayTeamIcon ? `<img src="${item.groupInfo.awayTeamIcon}" alt="${awayTeam}" style="width:24px;height:24px;object-fit:contain;" title="${awayTeam}">` : ''}
+                                            </div>
+                                        </div>
+                                    `)
+                            );
+                        } else {
+                            // TBD match
+                            $body.append(
+                                $('<div>')
+                                    .addClass('mt-2')
+                                    .html(`
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <small class="text-muted"><strong>TBD vs TBD</strong></small>
+                                        </div>
+                                    `)
+                            );
+                        }
+                    } else if (item.rsType === 30) {
+                        // Special handling for rsType=30 (Live Streaming)
+                        // Add Play button for streaming
+                        if (item.url) {
+                            $body.append(
+                                $('<div>')
+                                    .addClass('mt-3')
+                                    .html(`<button class="btn btn-outline-primary btn-sm play-stream-btn" data-url="${item.url}">Play</button>`)
+                            );
+                        }
+                    } else {
+                        // Regular time display for non-rsType=31 items
+                        if (item.releaseTime > 0) {
+                            $body.append(
+                                $('<p>')
+                                    .addClass('card-text text-muted mt-2')
+                                    .css('font-size', '0.85em')
+                                    .text(`Release Time(UTC): ${formatUTCDate(item.releaseTime)}`)
+                            );
+                        }
 
-                    // Live time display for REC_PROGRAM
-                    if (item.formattedLiveStartTime && item.formattedLiveEndTime) {
-                        $body.append(
-                            $('<p>')
-                                .addClass('card-text text-muted mt-2')
-                                .css('font-size', '0.85em')
-                                .text(`Start Time: ${item.formattedLiveStartTime}`)
-                        );
-                        $body.append(
-                            $('<p>')
-                                .addClass('card-text text-muted')
-                                .css('font-size', '0.85em')
-                                .text(`End Time: ${item.formattedLiveEndTime}`)
-                        );
+                        // Live time display for REC_PROGRAM
+                        if (item.formattedLiveStartTime && item.formattedLiveEndTime) {
+                            $body.append(
+                                $('<p>')
+                                    .addClass('card-text text-muted mt-2')
+                                    .css('font-size', '0.85em')
+                                    .text(`Start Time: ${item.formattedLiveStartTime}`)
+                            );
+                            $body.append(
+                                $('<p>')
+                                    .addClass('card-text text-muted')
+                                    .css('font-size', '0.85em')
+                                    .text(`End Time: ${item.formattedLiveEndTime}`)
+                            );
+                        }
                     }
 
                     // Play source display
@@ -1265,9 +1437,56 @@
                     $col.append($card);
                     $('#contentContainer').append($col);
 
+                    // Add click event handler for Play Stream button
+                    if (item.rsType === 30) {
+                        $col.find('.play-stream-btn').click(function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            e.stopImmediatePropagation();
+                            
+                            const url = $(this).data('url');
+                            console.log('Play Stream button clicked, URL:', url);
+                            
+                            if (!url) {
+                                console.error('No URL found for play stream button');
+                                alert('No stream URL available for playback');
+                                return;
+                            }
+                            
+                            // Disable button temporarily to prevent multiple clicks
+                            const $btn = $(this);
+                            const originalText = $btn.text();
+                            $btn.prop('disabled', true).text('Loading...');
+                            
+                            try {
+                                playVideo(url, item.name);
+                                
+                                // Re-enable button after a short delay
+                                setTimeout(() => {
+                                    $btn.prop('disabled', false).text(originalText);
+                                }, 2000);
+                            } catch (error) {
+                                console.error('Error playing stream:', error);
+                                $btn.prop('disabled', false).text(originalText);
+                                alert('Failed to play stream: ' + error.message);
+                            }
+                        });
+                    }
+
                     // Add click event
-                    $card.click(async () => {
+                    $card.click(async (e) => {
+                        // Prevent card click if clicking on play button or its container
+                        if ($(e.target).closest('.play-stream-btn, .btn').length > 0) {
+                            console.log('Card click prevented - button clicked');
+                            return;
+                        }
+                        
                         try {
+                            // Skip resourceDetail for rsType=31, rsType=32, and rsType=30
+                            if (item.rsType === 31 || item.rsType === 32 || item.rsType === 30) {
+                                return;
+                            }
+                            
                             // Check resource type and objectType
                             const resType = item.rsType;
                             let objectType = 'N/A';
@@ -1716,13 +1935,36 @@
                     const $col = $('<div>').addClass('col-12 mb-4');
                     const $card = $('<div>').addClass('card h-100 shadow-sm');
                     
-                    // Parse objectType
+                    // Parse objectType based on rsType
                     let objectType = 'N/A';
-                    try {
-                        const valueObj = JSON.parse(item.value);
-                        objectType = valueObj.objectType || 'N/A';
-                    } catch(e) {
-                        console.warn('Failed to parse value:', item.value);
+                    if (item.rsType === 6) {
+                        objectType = 'APP';
+                    } else if (item.rsType === 7) {
+                        objectType = 'APP CATEGORY';
+                    } else if (item.rsType === 2) {
+                        objectType = 'TEXT';
+                    } else if (item.rsType === 1) {
+                        objectType = 'PICTURE';
+                    } else if (item.rsType === 3) {
+                        objectType = 'HTTP LINK';
+                    } else if (item.rsType === 4) {
+                        objectType = 'VIDEO LINK';
+                    } else if (item.rsType === 5) {
+                        objectType = 'AD';
+                    } else if (item.rsType === 32) {
+                        try {
+                            const valueObj = JSON.parse(item.value);
+                            objectType = valueObj.objectType || 'N/A';
+                        } catch(e) {
+                            console.warn('Failed to parse value:', item.value);
+                        }
+                    } else {
+                        try {
+                            const valueObj = JSON.parse(item.value);
+                            objectType = valueObj.objectType || 'N/A';
+                        } catch(e) {
+                            console.warn('Failed to parse value:', item.value);
+                        }
                     }
                     
                     // Image section
@@ -1743,6 +1985,13 @@
                         );
                         $imgContainer.append($overlay);
                         $card.append($imgContainer);
+                    } else if (item.rsType === 2) {
+                        // For rsType=2 with empty icon, display value as text
+                        const $textContainer = $('<div>').addClass('p-4 text-center');
+                        $textContainer.append(
+                            $('<p>').addClass('text-muted mb-0').css('font-size', '0.85em').text(item.value || 'N/A')
+                        );
+                        $card.append($textContainer);
                     }
 
                     // Content body
