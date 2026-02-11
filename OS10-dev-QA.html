@@ -637,7 +637,7 @@
             brandId: '7',
             deviceSetId: '10bfa24f235519482a8b9b1c2ad7a3aef6',
             deviceType: 'WHALEOS10_Zeasn_Test_AML962D4',
-            countryCode: 'US',
+            countryCode: 'AU',
             langCode: 'en',
             mac: 'e8:51:9e:28:c7:4c',
             functionType: 'TvLauncher',
@@ -1131,13 +1131,36 @@
                     const $col = $('<div>').addClass('col-12 col-md-6 col-lg-4 mb-4');
                     const $card = $('<div>').addClass('card h-100 shadow-sm');
                     
-                    // Parse objectType
+                    // Parse objectType based on rsType
                     let objectType = 'N/A';
-                    try {
-                        const valueObj = JSON.parse(item.value);
-                        objectType = valueObj.objectType || 'N/A';
-                    } catch(e) {
-                        console.warn('Failed to parse value:', item.value);
+                    if (item.rsType === 6) {
+                        objectType = 'APP';
+                    } else if (item.rsType === 7) {
+                        objectType = 'APP CATEGORY';
+                    } else if (item.rsType === 2) {
+                        objectType = 'TEXT';
+                    } else if (item.rsType === 1) {
+                        objectType = 'PICTURE';
+                    } else if (item.rsType === 3) {
+                        objectType = 'HTTP LINK';
+                    } else if (item.rsType === 4) {
+                        objectType = 'VIDEO LINK';
+                    } else if (item.rsType === 5) {
+                        objectType = 'AD';
+                    } else if (item.rsType === 32) {
+                        try {
+                            const valueObj = JSON.parse(item.value);
+                            objectType = valueObj.objectType || 'N/A';
+                        } catch(e) {
+                            console.warn('Failed to parse value:', item.value);
+                        }
+                    } else {
+                        try {
+                            const valueObj = JSON.parse(item.value);
+                            objectType = valueObj.objectType || 'N/A';
+                        } catch(e) {
+                            console.warn('Failed to parse value:', item.value);
+                        }
                     }
                     
                     // Image section
@@ -1159,6 +1182,13 @@
                         $imgContainer.append($overlay);
 
                         $card.append($imgContainer);
+                    } else if (item.rsType === 2) {
+                        // For rsType=2 with empty icon, display value as text
+                        const $textContainer = $('<div>').addClass('p-4 text-center');
+                        $textContainer.append(
+                            $('<p>').addClass('text-muted mb-0').css('font-size', '0.85em').text(item.value || 'N/A')
+                        );
+                        $card.append($textContainer);
                     }
 
                     // Content body
@@ -1905,13 +1935,36 @@
                     const $col = $('<div>').addClass('col-12 mb-4');
                     const $card = $('<div>').addClass('card h-100 shadow-sm');
                     
-                    // Parse objectType
+                    // Parse objectType based on rsType
                     let objectType = 'N/A';
-                    try {
-                        const valueObj = JSON.parse(item.value);
-                        objectType = valueObj.objectType || 'N/A';
-                    } catch(e) {
-                        console.warn('Failed to parse value:', item.value);
+                    if (item.rsType === 6) {
+                        objectType = 'APP';
+                    } else if (item.rsType === 7) {
+                        objectType = 'APP CATEGORY';
+                    } else if (item.rsType === 2) {
+                        objectType = 'TEXT';
+                    } else if (item.rsType === 1) {
+                        objectType = 'PICTURE';
+                    } else if (item.rsType === 3) {
+                        objectType = 'HTTP LINK';
+                    } else if (item.rsType === 4) {
+                        objectType = 'VIDEO LINK';
+                    } else if (item.rsType === 5) {
+                        objectType = 'AD';
+                    } else if (item.rsType === 32) {
+                        try {
+                            const valueObj = JSON.parse(item.value);
+                            objectType = valueObj.objectType || 'N/A';
+                        } catch(e) {
+                            console.warn('Failed to parse value:', item.value);
+                        }
+                    } else {
+                        try {
+                            const valueObj = JSON.parse(item.value);
+                            objectType = valueObj.objectType || 'N/A';
+                        } catch(e) {
+                            console.warn('Failed to parse value:', item.value);
+                        }
                     }
                     
                     // Image section
@@ -1932,6 +1985,13 @@
                         );
                         $imgContainer.append($overlay);
                         $card.append($imgContainer);
+                    } else if (item.rsType === 2) {
+                        // For rsType=2 with empty icon, display value as text
+                        const $textContainer = $('<div>').addClass('p-4 text-center');
+                        $textContainer.append(
+                            $('<p>').addClass('text-muted mb-0').css('font-size', '0.85em').text(item.value || 'N/A')
+                        );
+                        $card.append($textContainer);
                     }
 
                     // Content body
