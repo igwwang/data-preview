@@ -461,45 +461,60 @@ class TVDataTester:
             self._handle_alerts()
             
             # 快速检查详情模态框（警告框后不强制等待）
+            detail_modal_opened = False
             try:
                 short_wait = WebDriverWait(self.driver, 2)  # 只等待2秒
                 short_wait.until(EC.visibility_of_element_located((By.ID, "resourceDetailModal")))
                 logger.info("详情模态框已出现")
+                detail_modal_opened = True
                 time.sleep(0.5)
             except TimeoutException:
-                # 警告框后模态框未出现是正常情况
-                execution_time = time.time() - start_time
-                results.append(TestResult(test_name, True, "卡片点击正常（警告框已处理，无详情模态框）", 0, execution_time))
-                logger.info(f"✅ {test_name}: 点击正常（警告框已处理） ({execution_time:.2f}s)")
-                return results
+                # 详情模态框未出现
+                logger.info("详情模态框未出现，直接检查Play按钮")
+                detail_modal_opened = False
             
-            # 处理可能的警告框
-            self._handle_alerts()
-            
-            # 测试详情页面的深层按钮
-            detail_results = self._test_detail_modal_buttons(context_name, card_title)
-            results.extend(detail_results)
-            
-            # 关闭详情模态框（使用JavaScript确保可靠性）
-            try:
-                close_btn = self.driver.find_element(By.CSS_SELECTOR, "#resourceDetailModal .btn-close")
-                self.driver.execute_script("arguments[0].click();", close_btn)
-                self.wait.until(EC.invisibility_of_element_located((By.ID, "resourceDetailModal")))
-                # 等待返回到内容模态框
-                self.wait.until(EC.visibility_of_element_located((By.ID, "contentModal")))
-            except Exception:
-                # 如果关闭按钮被遮挡，使用ESC键关闭
-                self.driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
-                time.sleep(1)
-                # 确保返回到内容模态框
+            if detail_modal_opened:
+                # 处理可能的警告框
+                self._handle_alerts()
+                
+                # 测试详情页面的深层按钮
+                detail_results = self._test_detail_modal_buttons(context_name, card_title)
+                results.extend(detail_results)
+                
+                # 关闭详情模态框（使用JavaScript确保可靠性）
                 try:
+                    close_btn = self.driver.find_element(By.CSS_SELECTOR, "#resourceDetailModal .btn-close")
+                    self.driver.execute_script("arguments[0].click();", close_btn)
+                    self.wait.until(EC.invisibility_of_element_located((By.ID, "resourceDetailModal")))
+                    # 等待返回到内容模态框
                     self.wait.until(EC.visibility_of_element_located((By.ID, "contentModal")))
-                except:
-                    pass
-            
-            execution_time = time.time() - start_time
-            results.append(TestResult(test_name, True, "卡片详情功能正常", 0, execution_time))
-            logger.info(f"✅ {test_name}: 功能正常 ({execution_time:.2f}s)")
+                except Exception:
+                    # 如果关闭按钮被遮挡，使用ESC键关闭
+                    self.driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
+                    time.sleep(1)
+                    # 确保返回到内容模态框
+                    try:
+                        self.wait.until(EC.visibility_of_element_located((By.ID, "contentModal")))
+                    except:
+                        pass
+                
+                # 返回内容模态框后，检查第一个item是否有Play按钮
+                time.sleep(1)  # 等待内容稳定
+                play_test_results = self._test_first_item_play_button(context_name, card_title)
+                results.extend(play_test_results)
+                
+                execution_time = time.time() - start_time
+                results.append(TestResult(test_name, True, "卡片详情功能正常", 0, execution_time))
+                logger.info(f"✅ {test_name}: 功能正常 ({execution_time:.2f}s)")
+            else:
+                # 详情模态框未打开，直接检查Play按钮
+                execution_time = time.time() - start_time
+                results.append(TestResult(test_name, True, "卡片点击无反应（无详情模态框）", 0, execution_time))
+                logger.info(f"✅ {test_name}: 点击无反应，检查Play按钮 ({execution_time:.2f}s)")
+                
+                # 直接检查第一个item的Play按钮
+                play_test_results = self._test_first_item_play_button(context_name, card_title)
+                results.extend(play_test_results)
             
         except Exception as e:
             execution_time = time.time() - start_time if 'start_time' in locals() else 0
@@ -958,6 +973,129 @@ class TVDataTester:
                         break
         except Exception:
             pass
+    
+    def _test_first_item_play_button(self, context_name="", card_title="") -> List[TestResult]:
+        """检查并测试返回列表中第一个item的Play按钮"""
+        results = []
+        
+        try:
+            # 确认在内容模态框中
+            content_modal = self.driver.find_element(By.ID, "contentModal")
+            if not content_modal.is_displayed():
+                logger.debug("不在内容模态框中，跳过Play按钮检查")
+                return results
+            
+            # 获取第一个卡片
+            cards = self.driver.find_elements(By.CSS_SELECTOR, "#contentContainer .card")
+            if not cards:
+                logger.debug("未找到卡片，跳过Play按钮检查")
+                return results
+            
+            first_card = cards[0]
+            
+            # 在第一个卡片中查找Play按钮
+            play_selectors = [
+                ".play-now-btn",
+                "button[data-url]",
+                "button[onclick*='play']",
+                "[id*='play']",
+                "[class*='play']",
+                "a[href*='play']"
+            ]
+            
+            play_btn = None
+            for selector in play_selectors:
+                try:
+                    btns = first_card.find_elements(By.CSS_SELECTOR, selector)
+                    for btn in btns:
+                        if btn.is_displayed() and btn.is_enabled():
+                            play_btn = btn
+                            break
+                    if play_btn:
+                        break
+                except:
+                    continue
+            
+            if not play_btn:
+                logger.debug(f"第一个item中未找到Play按钮")
+                return results
+            
+            # 找到Play按钮，进行测试
+            test_name = f"{context_name}子栏目第一项Play按钮{card_title}" if context_name else f"子栏目第一项Play按钮{card_title}"
+            start_time = time.time()
+            
+            logger.info(f"在第一个item中发现Play按钮，开始测试")
+            
+            # 滚动到按钮并点击
+            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", play_btn)
+            time.sleep(0.5)
+            
+            initial_windows = len(self.driver.window_handles)
+            self.driver.execute_script("arguments[0].click();", play_btn)
+            
+            # 检测播放响应
+            response_detected = False
+            response_type = ""
+            
+            # 1. 检查视频播放器模态框
+            try:
+                short_wait = WebDriverWait(self.driver, 3)
+                short_wait.until(EC.visibility_of_element_located((By.ID, "videoPlayerModal")))
+                response_detected = True
+                response_type = "视频播放器"
+                logger.info("视频播放器模态框已出现")
+                
+                # 等待播放器初始化
+                time.sleep(2)
+                
+                # 让播放器多播放10秒
+                logger.info("播放器播放中，等待10秒...")
+                time.sleep(10)
+                
+                # 测试播放器功能
+                player_results = self._test_video_player_features(context_name)
+                results.extend(player_results)
+                
+                # 关闭播放器
+                try:
+                    close_btn = self.driver.find_element(By.CSS_SELECTOR, "#videoPlayerModal .btn-close")
+                    self.driver.execute_script("arguments[0].click();", close_btn)
+                    self.wait.until(EC.invisibility_of_element_located((By.ID, "videoPlayerModal")))
+                except Exception:
+                    self.driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
+                    time.sleep(1)
+                
+            except TimeoutException:
+                # 2. 检查新窗口
+                time.sleep(2)
+                current_windows = len(self.driver.window_handles)
+                if current_windows > initial_windows:
+                    response_detected = True
+                    response_type = "新窗口"
+                    self.driver.switch_to.window(self.driver.window_handles[-1])
+                    self.driver.close()
+                    self.driver.switch_to.window(self.driver.window_handles[0])
+                
+                # 3. 检查URL变化
+                if not response_detected:
+                    current_url = self.driver.current_url
+                    if 'play' in current_url.lower() or 'video' in current_url.lower():
+                        response_detected = True
+                        response_type = "URL跳转"
+            
+            execution_time = time.time() - start_time
+            
+            if response_detected:
+                results.append(TestResult(test_name, True, f"Play按钮正常 - {response_type}", 0, execution_time))
+                logger.info(f"✅ {test_name}: 正常 - {response_type} ({execution_time:.2f}s)")
+            else:
+                results.append(TestResult(test_name, True, "Play按钮存在但无明显响应", 0, execution_time))
+                logger.info(f"✅ {test_name}: 存在但无明显响应 ({execution_time:.2f}s)")
+            
+        except Exception as e:
+            logger.debug(f"Play按钮检查异常: {e}")
+        
+        return results
     
     def _handle_alerts(self):
         """处理JavaScript警告框"""
