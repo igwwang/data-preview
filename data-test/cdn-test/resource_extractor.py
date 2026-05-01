@@ -8,6 +8,7 @@
 import requests
 import time
 import urllib3
+import json
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -156,7 +157,23 @@ class ResourceExtractor:
         data_list = content_data.get('dataList', [])
 
         for item in data_list:
+            # 优先从vsId字段获取
             vs_id = item.get('vsId')
+            
+            # 如果没有vsId，尝试从value字段的JSON中提取appvsId
+            if not vs_id:
+                value_str = item.get('value', '')
+                if value_str:
+                    try:
+                        value_data = json.loads(value_str)
+                        vs_id = value_data.get('appvsId')
+                    except json.JSONDecodeError:
+                        pass
+            
+            # 如果还是没有，尝试直接获取appvsId字段
+            if not vs_id:
+                vs_id = item.get('appvsId')
+            
             if vs_id and vs_id not in tested_vs_ids:
                 tested_vs_ids.add(vs_id)
                 download_url = f"{self.api_base_url}/sp/api/device/v1/app/download?token={self.token}&vsId={vs_id}"

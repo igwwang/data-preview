@@ -131,3 +131,41 @@ class TestResourceExtractor:
 
         resources = extractor.extract_download_links(content, 'Test/Path')
         assert len(resources) == 1  # 应该去重
+
+    def test_extract_download_links_from_value_json(self):
+        """测试从value字段的JSON中提取appvsId"""
+        config = {'API_BASE_URL': 'https://saas.zeasn.tv'}
+        extractor = ResourceExtractor(config, 'test_token')
+
+        content = {
+            'content': {
+                'dataList': [
+                    {
+                        'name': 'Netflix',
+                        'value': '{"appId":"680570911942319187","appvsId":"706515241039103377"}'
+                    }
+                ]
+            }
+        }
+
+        resources = extractor.extract_download_links(content, 'Test/Path')
+        assert len(resources) == 1
+        assert resources[0]['vs_id'] == '706515241039103377'
+        assert 'vsId=706515241039103377' in resources[0]['url']
+
+    def test_extract_download_links_appvsid_field(self):
+        """测试直接从appvsId字段提取"""
+        config = {'API_BASE_URL': 'https://saas.zeasn.tv'}
+        extractor = ResourceExtractor(config, 'test_token')
+
+        content = {
+            'content': {
+                'dataList': [
+                    {'name': 'App1', 'appvsId': 'vs789'}
+                ]
+            }
+        }
+
+        resources = extractor.extract_download_links(content, 'Test/Path')
+        assert len(resources) == 1
+        assert resources[0]['vs_id'] == 'vs789'
