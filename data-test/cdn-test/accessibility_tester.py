@@ -37,6 +37,7 @@ class AccessibilityTester:
             try:
                 kwargs.setdefault('timeout', 30)
                 kwargs.setdefault('verify', False)
+                kwargs.setdefault('proxies', {'http': None, 'https': None})
 
                 if method.lower() == 'get':
                     response = requests.get(url, **kwargs)
@@ -126,7 +127,8 @@ class AccessibilityTester:
                             headers={'Range': f'bytes=0-{self.max_download_size - 1}'},
                             verify=False,
                             timeout=30,
-                            stream=True
+                            stream=True,
+                            proxies={'http': None, 'https': None}
                         )
                         result['http_status'] = download_response.status_code
 
@@ -155,7 +157,8 @@ class AccessibilityTester:
                     headers={'Range': f'bytes=0-{self.max_download_size - 1}'},
                     verify=False,
                     timeout=30,
-                    stream=True
+                    stream=True,
+                    proxies={'http': None, 'https': None}
                 )
                 result['http_status'] = response.status_code
 
