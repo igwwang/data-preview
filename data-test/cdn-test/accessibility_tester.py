@@ -14,13 +14,22 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class AccessibilityTester:
-    def __init__(self):
+    def __init__(self, proxy: str = None):
         """
         初始化可访问性测试器
+        :param proxy: 代理服务器地址，格式: http://host:port 或 https://host:port
         """
         self.max_retries = 3
         self.retry_delay = 2
         self.max_download_size = 1024 * 1024  # 1MB
+        
+        # 代理配置
+        self.proxies = {}
+        if proxy:
+            self.proxies = {
+                'http': proxy,
+                'https': proxy
+            }
 
     def _make_request_with_retry(self, method: str, url: str, success_codes: list = None, **kwargs):
         """
@@ -37,7 +46,10 @@ class AccessibilityTester:
             try:
                 kwargs.setdefault('timeout', 30)
                 kwargs.setdefault('verify', False)
-                kwargs.setdefault('proxies', {'http': None, 'https': None})
+                if self.proxies:
+                    kwargs.setdefault('proxies', self.proxies)
+                else:
+                    kwargs.setdefault('proxies', {'http': None, 'https': None})
 
                 if method.lower() == 'get':
                     response = requests.get(url, **kwargs)
@@ -128,7 +140,7 @@ class AccessibilityTester:
                             verify=False,
                             timeout=30,
                             stream=True,
-                            proxies={'http': None, 'https': None}
+                            proxies=self.proxies if self.proxies else {'http': None, 'https': None}
                         )
                         result['http_status'] = download_response.status_code
 
@@ -158,7 +170,7 @@ class AccessibilityTester:
                     verify=False,
                     timeout=30,
                     stream=True,
-                    proxies={'http': None, 'https': None}
+                    proxies=self.proxies if self.proxies else {'http': None, 'https': None}
                 )
                 result['http_status'] = response.status_code
 

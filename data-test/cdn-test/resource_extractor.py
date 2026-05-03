@@ -14,19 +14,29 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class ResourceExtractor:
-    def __init__(self, config: dict, token: str):
+    def __init__(self, config: dict, token: str, proxy: str = None):
         """
         初始化资源提取器
         :param config: 配置字典
         :param token: 认证Token
+        :param proxy: 代理服务器地址
         """
         self.api_base_url = config.get('API_BASE_URL', '')
         self.token = token
+        self.proxy = proxy
         self.max_retries = 3
         self.retry_delay = 2
 
         # 需要提取的图片字段
         self.image_fields = ['icon', 'poster', 'cover', 'background', 'backgroud']
+
+        # 代理配置
+        self.proxies = {}
+        if proxy:
+            self.proxies = {
+                'http': proxy,
+                'https': proxy
+            }
 
     def _make_request_with_retry(self, method: str, url: str, **kwargs) -> requests.Response:
         """
@@ -36,6 +46,10 @@ class ResourceExtractor:
             try:
                 kwargs.setdefault('timeout', 30)
                 kwargs.setdefault('verify', False)
+                if self.proxies:
+                    kwargs.setdefault('proxies', self.proxies)
+                else:
+                    kwargs.setdefault('proxies', {'http': None, 'https': None})
 
                 if method.lower() == 'get':
                     response = requests.get(url, **kwargs)

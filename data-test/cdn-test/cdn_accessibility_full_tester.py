@@ -19,13 +19,15 @@ from report_generator import ReportGenerator
 
 
 class CDNAccessibilityFullTester:
-    def __init__(self, environment: str = 'prod'):
+    def __init__(self, environment: str = 'prod', proxy: str = None):
         """
         初始化CDN可访问性测试器
         :param environment: 环境类型 'prod', 'acc', 或 'dev'
+        :param proxy: 代理服务器地址，格式: http://host:port 或 https://host:port
         """
         self.environment = environment
-        self.config_parser = ConfigParser(environment)
+        self.proxy = proxy
+        self.config_parser = ConfigParser(environment, proxy)
         self.config = {}
         self.auth_manager = None
         self.node_traverser = None
@@ -47,7 +49,7 @@ class CDNAccessibilityFullTester:
 
         # 2. 初始化认证管理器
         print("2. 初始化认证管理器...")
-        self.auth_manager = AuthManager(self.config)
+        self.auth_manager = AuthManager(self.config, self.proxy)
 
         # 3. 获取Token
         print("3. 获取认证Token...")
@@ -55,15 +57,19 @@ class CDNAccessibilityFullTester:
 
         # 4. 初始化节点遍历器
         print("4. 初始化节点遍历器...")
-        self.node_traverser = NodeTraverser(self.config, token)
+        self.node_traverser = NodeTraverser(self.config, token, self.proxy)
 
         # 5. 初始化资源提取器
         print("5. 初始化资源提取器...")
-        self.resource_extractor = ResourceExtractor(self.config, token)
+        self.resource_extractor = ResourceExtractor(self.config, token, self.proxy)
 
         # 6. 初始化可访问性测试器
         print("6. 初始化可访问性测试器...")
-        self.accessibility_tester = AccessibilityTester()
+        self.accessibility_tester = AccessibilityTester(proxy=self.proxy)
+
+        # 显示代理配置
+        if self.proxy:
+            print(f"   使用代理: {self.proxy}")
 
         print("初始化完成！")
         print("")
@@ -192,16 +198,32 @@ def main():
     主执行函数
     """
     environment = 'prod'  # 默认使用prod环境
+    proxy = None
 
-    if len(sys.argv) > 1:
-        if sys.argv[1].lower() in ['prod', 'acc', 'dev']:
-            environment = sys.argv[1].lower()
+    # 解析命令行参数
+    i = 1
+    while i < len(sys.argv):
+        if sys.argv[i].lower() in ['prod', 'acc', 'dev']:
+            environment = sys.argv[i].lower()
+        elif sys.argv[i].lower() == '--proxy' and i + 1 < len(sys.argv):
+            proxy = sys.argv[i + 1]
+            i += 1
         else:
-            print("使用方法: python cdn_accessibility_full_tester.py [prod|acc|dev]")
-            print("默认使用prod环境")
+            print("使用方法:")
+            print("  python cdn_accessibility_full_tester.py [prod|acc|dev] [--proxy http://host:port]")
+            print("")
+            print("参数说明:")
+            print("  prod|acc|dev   : 测试环境 (默认: prod)")
+            print("  --proxy URL    : 代理服务器地址 (可选)")
+            print("")
+            print("示例:")
+            print("  python cdn_accessibility_full_tester.py")
+            print("  python cdn_accessibility_full_tester.py acc")
+            print("  python cdn_accessibility_full_tester.py prod --proxy http://proxy.example.com:8080")
             sys.exit(1)
+        i += 1
 
-    tester = CDNAccessibilityFullTester(environment)
+    tester = CDNAccessibilityFullTester(environment, proxy)
     tester.run_test()
 
 

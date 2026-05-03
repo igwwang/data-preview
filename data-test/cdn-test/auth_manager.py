@@ -17,10 +17,11 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class AuthManager:
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, proxy: str = None):
         """
         初始化认证管理器
         :param config: 配置字典，包含API_BASE_URL, ACCESS_KEY, SECRET_KEY, DEFAULT_PARAMS
+        :param proxy: 代理服务器地址
         """
         self.api_base_url = config.get('API_BASE_URL', '')
         self.access_key = config.get('ACCESS_KEY', '')
@@ -30,6 +31,14 @@ class AuthManager:
         self.user_token = None
         self.max_retries = 3
         self.retry_delay = 2
+        
+        # 代理配置
+        self.proxies = {}
+        if proxy:
+            self.proxies = {
+                'http': proxy,
+                'https': proxy
+            }
 
     def generate_auth_header(self, path: str) -> str:
         """
@@ -59,6 +68,10 @@ class AuthManager:
             try:
                 kwargs.setdefault('timeout', 30)
                 kwargs.setdefault('verify', False)
+                if self.proxies:
+                    kwargs.setdefault('proxies', self.proxies)
+                else:
+                    kwargs.setdefault('proxies', {'http': None, 'https': None})
 
                 if method.lower() == 'get':
                     response = requests.get(url, **kwargs)

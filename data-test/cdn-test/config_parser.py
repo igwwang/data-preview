@@ -7,12 +7,14 @@
 
 
 class ConfigParser:
-    def __init__(self, environment: str = 'prod'):
+    def __init__(self, environment: str = 'prod', proxy: str = None):
         """
         初始化配置解析器
         :param environment: 环境类型 'prod', 'acc', 或 'dev'
+        :param proxy: 代理服务器地址，格式: http://host:port 或 https://host:port
         """
         self.environment = environment
+        self.proxy = proxy
         self.default_configs = {
             'prod': {
                 'API_BASE_URL': 'https://saas.zeasn.tv',
@@ -112,3 +114,20 @@ class ConfigParser:
     def get_default_params(self) -> dict:
         """获取默认设备参数"""
         return self.get_config().get('DEFAULT_PARAMS', {})
+
+    def get_proxy(self) -> str:
+        """获取代理服务器地址"""
+        return self.proxy
+
+    def get_proxy_dict(self) -> dict:
+        """获取代理字典配置，用于requests库"""
+        if self.proxy:
+            return {
+                'http': self.proxy,
+                'https': self.proxy
+            }
+        return {}
+
+    def has_proxy(self) -> bool:
+        """是否配置了代理"""
+        return self.proxy is not None and self.proxy.strip() != ''
