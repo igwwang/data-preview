@@ -117,7 +117,12 @@ class CDNAccessibilityFullTester:
                             tested_resources += 1
 
                             status_icon = "✅" if result['status'] == 'PASS' else "❌"
-                            print(f"    {status_icon} {resource['field']} - {resource['url']}")
+                            item_name = resource.get('item_name', '')
+                            if item_name:
+                                print(f"    {status_icon} [{resource['field']}] {item_name}")
+                                print(f"        URL: {resource['url']}")
+                            else:
+                                print(f"    {status_icon} [{resource['field']}] {resource['url']}")
 
                         # 添加间隔
                         time.sleep(0.5)

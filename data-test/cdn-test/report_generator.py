@@ -91,24 +91,24 @@ class ReportGenerator:
                 download_items = [r for r in path_results if r.get('test_type') == 'download']
                 content.append("#### 下载链接")
                 content.append("")
-                content.append("| 应用名称 | vsId | CDN域名 | HTTP状态 | 响应时间 | 状态 | 错误信息 |")
-                content.append("|----------|------|---------|----------|----------|------|----------|")
+                content.append("| 应用名称 | vsId | CDN域名 | HTTP状态 | 响应时间 | 状态 | URL |")
+                content.append("|----------|------|---------|----------|----------|------|-----|")
                 for result in download_items:
                     status_icon = "✅" if result['status'] == 'PASS' else "❌"
-                    error_msg = result.get('error_message', '') or '-'
-                    content.append(f"| {result.get('item_name', '-')} | {result.get('vs_id', '-')} | {result.get('cdn_domain', '-')} | {result.get('http_status', '-')} | {result.get('response_time', 0):.2f}s | {status_icon} | {error_msg} |")
+                    url = result.get('url', '')
+                    content.append(f"| {result.get('item_name', '-')} | {result.get('vs_id', '-')} | {result.get('cdn_domain', '-')} | {result.get('http_status', '-')} | {result.get('response_time', 0):.2f}s | {status_icon} | [{url[:60]}{'...' if len(url) > 60 else ''}]({url}) |")
                 content.append("")
 
             # 图片资源表格
             image_items = [r for r in path_results if r.get('test_type') == 'image']
             content.append("#### 图片资源")
             content.append("")
-            content.append("| 内容名称 | 字段 | CDN域名 | HTTP状态 | 下载字节数 | 响应时间 | 状态 | 错误信息 |")
-            content.append("|----------|------|---------|----------|------------|----------|------|----------|")
+            content.append("| 内容名称 | 字段 | CDN域名 | HTTP状态 | 下载字节数 | 响应时间 | 状态 | URL |")
+            content.append("|----------|------|---------|----------|------------|----------|------|-----|")
             for result in image_items:
                 status_icon = "✅" if result['status'] == 'PASS' else "❌"
-                error_msg = result.get('error_message', '') or '-'
-                content.append(f"| {result.get('item_name', '-')} | {result.get('field', '-')} | {result.get('cdn_domain', '-')} | {result.get('http_status', '-')} | {result.get('downloaded_bytes', 0)} | {result.get('response_time', 0):.2f}s | {status_icon} | {error_msg} |")
+                url = result.get('url', '')
+                content.append(f"| {result.get('item_name', '-')} | {result.get('field', '-')} | {result.get('cdn_domain', '-')} | {result.get('http_status', '-')} | {result.get('downloaded_bytes', 0)} | {result.get('response_time', 0):.2f}s | {status_icon} | [{url[:60]}{'...' if len(url) > 60 else ''}]({url}) |")
             content.append("")
 
         # 问题分析
