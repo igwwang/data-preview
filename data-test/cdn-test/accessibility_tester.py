@@ -22,10 +22,17 @@ class AccessibilityTester:
         self.retry_delay = 2
         self.max_download_size = 1024 * 1024  # 1MB
 
-    def _make_request_with_retry(self, method: str, url: str, **kwargs):
+    def _make_request_with_retry(self, method: str, url: str, success_codes: list = None, **kwargs):
         """
         带重试机制的请求
+        :param method: HTTP方法
+        :param url: 请求URL
+        :param success_codes: 成功状态码列表，默认为[200]
+        :param kwargs: 请求参数
         """
+        if success_codes is None:
+            success_codes = [200]
+
         for attempt in range(self.max_retries):
             try:
                 kwargs.setdefault('timeout', 30)
@@ -38,7 +45,7 @@ class AccessibilityTester:
                 else:
                     raise ValueError(f"不支持的HTTP方法: {method}")
 
-                if response.status_code == 200:
+                if response.status_code in success_codes:
                     return response
                 else:
                     if attempt < self.max_retries - 1:
@@ -104,8 +111,8 @@ class AccessibilityTester:
             start_time = time.time()
 
             if test_type == 'download':
-                # 下载链接需要先获取重定向
-                response = self._make_request_with_retry('get', url, allow_redirects=False)
+                # 下载链接需要先获取重定向，接受301/302状态码
+                response = self._make_request_with_retry('get', url, success_codes=[301, 302], allow_redirects=False)
                 result['http_status'] = response.status_code
 
                 if response.status_code in [301, 302]:

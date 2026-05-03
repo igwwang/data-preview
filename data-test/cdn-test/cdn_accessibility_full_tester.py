@@ -87,7 +87,6 @@ class CDNAccessibilityFullTester:
             print("步骤1: 获取所有栏目叶子节点")
             print("-" * 50)
             leaf_nodes = self.node_traverser.get_leaf_nodes()
-            print(f"共发现 {len(leaf_nodes)} 个叶子节点")
             print("")
 
             # 3. 遍历每个叶子节点，提取资源并测试
@@ -113,13 +112,12 @@ class CDNAccessibilityFullTester:
                     if resources:
                         # 测试每个资源
                         for resource in resources:
-                            print(f"    测试: {resource['field']} - {resource['url'][:60]}...")
                             result = self.accessibility_tester.test_url(resource)
                             self.test_results.append(result)
                             tested_resources += 1
 
                             status_icon = "✅" if result['status'] == 'PASS' else "❌"
-                            print(f"      {status_icon} {result.get('cdn_domain', 'N/A')}")
+                            print(f"    {status_icon} {resource['field']} - {resource['url']}")
 
                         # 添加间隔
                         time.sleep(0.5)
@@ -179,7 +177,7 @@ class CDNAccessibilityFullTester:
             for result in self.test_results:
                 if result['status'] != 'PASS':
                     print(f"   - {result.get('page_path', 'Unknown')}")
-                    print(f"     {result.get('field', '-')}: {result.get('url', '')[:60]}...")
+                    print(f"     {result.get('field', '-')}: {result.get('url', '')}")
                     if result.get('error_message'):
                         print(f"     错误: {result['error_message']}")
 

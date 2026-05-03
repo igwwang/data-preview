@@ -124,7 +124,7 @@ class ReportGenerator:
                 content.append(f"- **页面路径:** {result.get('page_path', 'Unknown')}")
                 content.append(f"  - **资源名称:** {result.get('item_name', '-')}")
                 content.append(f"  - **字段:** {result.get('field', '-')}")
-                content.append(f"  - **URL:** {result.get('url', '')[:100]}...")
+                content.append(f"  - **URL:** {result.get('url', '')}")
                 content.append(f"  - **状态:** {result['status']}")
                 content.append(f"  - **错误:** {result.get('error_message', 'Unknown')}")
                 content.append("")
