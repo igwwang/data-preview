@@ -411,11 +411,11 @@ sequenceDiagram
         Tester->>CDN: GET 请求（不跟随重定向）
         CDN-->>Tester: 301/302 重定向
         Tester->>Tester: 提取Location头
-        Tester->>CDN: GET Location URL (Range: bytes=0-1MB)
+        Tester->>CDN: GET Location URL (Range: bytes=0-8KB)
         CDN-->>Tester: 200/206 响应
         Tester->>Tester: 记录下载字节数
     else 图片资源测试
-        Tester->>CDN: GET URL (Range: bytes=0-1MB)
+        Tester->>CDN: GET URL (Range: bytes=0-8KB)
         CDN-->>Tester: 200/206 响应
         Tester->>Tester: 记录下载字节数
     end
@@ -519,7 +519,7 @@ cdn_stat = {
 
 3. **数据处理优化**
    - 流式处理响应，不完整下载
-   - 只下载前1MB验证可访问性
+   - 只下载前8KB验证可访问性
 
 ## 6. 部署与运维
 

@@ -21,7 +21,10 @@ class AccessibilityTester:
         """
         self.max_retries = 3
         self.retry_delay = 2
-        self.max_download_size = 1024 * 1024  # 1MB
+        self.max_download_size = 8 * 1024  # 8KB
+        self.timeout = 60  # 超时时间（秒）
+        self.request_interval = 1.0  # 请求间隔时间（秒），限制每秒最多发起一次请求
+        self.last_request_time = 0  # 上次请求时间
         
         # 代理配置
         self.proxies = {}
@@ -30,6 +33,16 @@ class AccessibilityTester:
                 'http': proxy,
                 'https': proxy
             }
+    
+    def _rate_limit(self):
+        """
+        请求频率限制：确保每秒最多发起一次请求
+        """
+        now = time.time()
+        elapsed = now - self.last_request_time
+        if elapsed < self.request_interval:
+            time.sleep(self.request_interval - elapsed)
+        self.last_request_time = time.time()
 
     def _make_request_with_retry(self, method: str, url: str, success_codes: list = None, **kwargs):
         """
@@ -43,8 +56,11 @@ class AccessibilityTester:
             success_codes = [200]
 
         for attempt in range(self.max_retries):
+            # 请求频率限制
+            self._rate_limit()
+            
             try:
-                kwargs.setdefault('timeout', 30)
+                kwargs.setdefault('timeout', self.timeout)
                 kwargs.setdefault('verify', False)
                 if self.proxies:
                     kwargs.setdefault('proxies', self.proxies)
@@ -138,7 +154,7 @@ class AccessibilityTester:
                             location,
                             headers={'Range': f'bytes=0-{self.max_download_size - 1}'},
                             verify=False,
-                            timeout=30,
+                            timeout=self.timeout,
                             stream=True,
                             proxies=self.proxies if self.proxies else {'http': None, 'https': None}
                         )
@@ -163,14 +179,13 @@ class AccessibilityTester:
                     result['error_message'] = f"预期301/302重定向，实际: {response.status_code}"
 
             else:
-                # 测试图片等静态资源（只下载1MB）
-                response = requests.get(
+                # 测试图片等静态资源（只下载1MB），使用重试机制
+                response = self._make_request_with_retry(
+                    'get',
                     url,
+                    success_codes=[200, 206],
                     headers={'Range': f'bytes=0-{self.max_download_size - 1}'},
-                    verify=False,
-                    timeout=30,
-                    stream=True,
-                    proxies=self.proxies if self.proxies else {'http': None, 'https': None}
+                    stream=True
                 )
                 result['http_status'] = response.status_code
 
