@@ -27,8 +27,8 @@ pip install requests pandas urllib3
 - JDK8版本API: https://acc-saas.zeasn.tv
 
 **PROD环境：**
-- JDK17版本API: https://prod-saas-17.zeasn.tv
-- JDK8版本API: https://prod-saas.zeasn.tv
+- JDK17版本API: https://saas-17.zeasn.tv
+- JDK8版本API: https://saas.zeasn.tv
 
 ## 🚀 使用方法
 
