@@ -1295,8 +1295,8 @@
                         
                         // Live state
                         if (typeof item.liveState !== 'undefined') {
-                            const stateText = item.liveState === 0 ? 'Coming Soon' : item.liveState === 1 ? 'Live Now' : 'Unknown';
-                            const stateClass = item.liveState === 0 ? 'text-warning' : item.liveState === 1 ? 'text-success' : 'text-muted';
+                            const stateText = item.liveState === 0 ? 'Coming Soon' : item.liveState === 1 ? 'Live Now' : item.liveState === 4 ? 'Match Ended' : 'Unknown';
+                            const stateClass = item.liveState === 0 ? 'text-warning' : item.liveState === 1 ? 'text-success' : item.liveState === 4 ? 'text-secondary' : 'text-muted';
                             $body.append(
                                 $('<p>')
                                     .addClass(`card-text ${stateClass}`)
@@ -1304,7 +1304,7 @@
                                     .html(`<strong>Status:</strong> ${stateText}`)
                             );
                         }
-                        
+
                         // Group info display
                         if (item.groupInfo && Object.keys(item.groupInfo).length > 0) {
                             // Group name
@@ -1316,11 +1316,14 @@
                                         .html(`<strong>Group:</strong> ${item.groupInfo.name}`)
                                 );
                             }
-                            
+
                             // Teams display
                             const homeTeam = item.groupInfo.homeTeam || 'TBD';
                             const awayTeam = item.groupInfo.awayTeam || 'TBD';
-                            
+                            const homeScore = item.groupInfo.homeScore;
+                            const awayScore = item.groupInfo.awayScore;
+                            const showScore = data.content?.contentType === 43 && homeScore !== undefined && awayScore !== undefined;
+
                             $body.append(
                                 $('<div>')
                                     .addClass('mt-2')
@@ -1330,7 +1333,9 @@
                                                 ${item.groupInfo.homeTeamIcon ? `<img src="${item.groupInfo.homeTeamIcon}" alt="${homeTeam}" style="width:24px;height:24px;object-fit:contain;" title="${homeTeam}">` : ''}
                                                 <small class="text-muted"><strong>${homeTeam}</strong></small>
                                             </div>
-                                            <small class="text-muted mx-2">VS</small>
+                                            <div class="d-flex align-items-center gap-2 mx-2">
+                                                ${showScore ? `<span class="badge bg-dark fs-6">${homeScore} - ${awayScore}</span>` : '<small class="text-muted mx-2">VS</small>'}
+                                            </div>
                                             <div class="d-flex align-items-center gap-2">
                                                 <small class="text-muted"><strong>${awayTeam}</strong></small>
                                                 ${item.groupInfo.awayTeamIcon ? `<img src="${item.groupInfo.awayTeamIcon}" alt="${awayTeam}" style="width:24px;height:24px;object-fit:contain;" title="${awayTeam}">` : ''}
