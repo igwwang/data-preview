@@ -264,6 +264,30 @@
             margin-right: 0;
             margin-left: 0;
         }
+
+        /* Client IP selector styles */
+        .client-ip-selector {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+        }
+        .client-ip-selector .client-ip-select {
+            flex: 0 0 auto;
+            min-width: 180px;
+            max-width: 220px;
+        }
+        .client-ip-selector .client-ip-input {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        @media (max-width: 768px) {
+            .client-ip-selector {
+                flex-direction: column;
+            }
+            .client-ip-selector .client-ip-select {
+                max-width: 100%;
+            }
+        }
     </style>
     <style>
         /* Add overlay styling */
@@ -653,6 +677,22 @@
             // clientIp: '122.10.101.131'  // Hong Kong
             // clientIp: '8.34.210.0'  // USA
         };
+
+        // Candidate country-IP list for quick selection
+        const COUNTRY_IP_LIST = [
+            { country: 'Spain',      ip: '94.127.167.255' },
+            { country: 'Portugal',   ip: '79.168.0.0' },
+            { country: 'Italy',      ip: '151.95.219.6' },
+            { country: 'Brazil',     ip: '187.16.202.172' },
+            { country: 'Argentina',  ip: '1.178.48.0' },
+            { country: 'Chile',      ip: '38.7.221.172' },
+            { country: 'Mexico',     ip: '148.233.239.0' },
+            { country: 'Japan',      ip: '221.86.134.130' },
+            { country: 'France',     ip: '45.154.138.26' },
+            { country: 'Germany',    ip: '45.86.202.30' },
+            { country: 'Hong Kong',  ip: '122.10.101.131' },
+            { country: 'USA',        ip: '8.34.210.0' }
+        ];
 
         // 运行时全局参数（从默认值复制）
         const GLOBAL_PARAMS = { ...DEFAULT_PARAMS };
@@ -1244,8 +1284,8 @@
                         
                         // Live state
                         if (typeof item.liveState !== 'undefined') {
-                            const stateText = item.liveState === 0 ? 'Coming Soon' : item.liveState === 1 ? 'Live Now' : 'Unknown';
-                            const stateClass = item.liveState === 0 ? 'text-muted' : item.liveState === 1 ? 'text-success' : 'text-muted';
+                            const stateText = item.liveState === 0 ? 'Coming Soon' : item.liveState === 1 ? 'Live Now' : item.liveState === 4 ? 'Ended' : 'Unknown';
+                            const stateClass = item.liveState === 0 ? 'text-muted' : item.liveState === 1 ? 'text-success' : item.liveState === 4 ? 'text-secondary' : 'text-muted';
                             $body.append(
                                 $('<p>')
                                     .addClass(`card-text ${stateClass}`)
@@ -2547,14 +2587,51 @@
             const $fields = $('#configFormFields').empty();
             CONFIG_KEYS.forEach(key => {
                 let value = GLOBAL_PARAMS[key];
-                // 只显示注释外的参数
+                // Only show active (non-commented) params
                 if (typeof value === 'undefined') return;
-                $fields.append(`
-                    <div class="col-12 col-md-6">
-                        <label class="form-label fw-bold">${key}</label>
-                        <input type="text" class="form-control" name="${key}" value="${value ?? ''}">
-                    </div>
-                `);
+
+                if (key === 'clientIp') {
+                    // Build option list with current value matched
+                    const options = COUNTRY_IP_LIST.map(item =>
+                        `<option value="${item.ip}" ${item.ip === value ? 'selected' : ''}>${item.country} - ${item.ip}</option>`
+                    ).join('');
+                    // Check if current value matches any candidate
+                    const isCustom = COUNTRY_IP_LIST.every(item => item.ip !== value);
+                    $fields.append(`
+                        <div class="col-12">
+                            <label class="form-label fw-bold">${key}</label>
+                            <div class="client-ip-selector">
+                                <select class="form-select client-ip-select" id="clientIpSelect">
+                                    <option value="" ${isCustom ? '' : ''}>-- Select Country --</option>
+                                    ${options}
+                                </select>
+                                <input type="text" class="form-control client-ip-input" name="${key}" value="${value ?? ''}" placeholder="Enter IP manually">
+                            </div>
+                        </div>
+                    `);
+                } else {
+                    $fields.append(`
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-bold">${key}</label>
+                            <input type="text" class="form-control" name="${key}" value="${value ?? ''}">
+                        </div>
+                    `);
+                }
+            });
+
+            // Sync dropdown selection to input field
+            $('#clientIpSelect').on('change', function() {
+                const selectedIp = $(this).val();
+                if (selectedIp) {
+                    $('input[name="clientIp"]').val(selectedIp);
+                }
+            });
+            // Sync input field to dropdown (highlight matching option when typing)
+            $('input[name="clientIp"]').on('input', function() {
+                const inputVal = $(this).val().trim();
+                const $select = $('#clientIpSelect');
+                const match = COUNTRY_IP_LIST.find(item => item.ip === inputVal);
+                $select.val(match ? match.ip : '');
             });
             const modal = new bootstrap.Modal('#configModal');
             modal.show();
@@ -2571,14 +2648,20 @@
         });
         // 配置重置按钮逻辑：恢复初始参数
         $('#configResetBtn').click(function() {
-            // 还原GLOBAL_PARAMS为默认值
+            // Reset GLOBAL_PARAMS to defaults
             Object.assign(GLOBAL_PARAMS, DEFAULT_PARAMS);
-            // 更新表单显示
+            // Update input fields
             $('#configForm input').each(function() {
                 const key = $(this).attr('name');
                 if (key in DEFAULT_PARAMS) $(this).val(DEFAULT_PARAMS[key]);
             });
-            // 清除当前页面的localStorage
+            // Reset clientIp dropdown to match default value
+            const defaultIp = DEFAULT_PARAMS.clientIp;
+            if ($('#clientIpSelect').length) {
+                const match = COUNTRY_IP_LIST.find(item => item.ip === defaultIp);
+                $('#clientIpSelect').val(match ? match.ip : '');
+            }
+            // Clear localStorage for this page
             localStorage.removeItem(PAGE_STORAGE_KEY);
         });
         // 页面加载时优先读取localStorage参数
