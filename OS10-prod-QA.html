@@ -1244,8 +1244,8 @@
                         
                         // Live state
                         if (typeof item.liveState !== 'undefined') {
-                            const stateText = item.liveState === 0 ? 'Coming Soon' : item.liveState === 1 ? 'Live Now' : 'Unknown';
-                            const stateClass = item.liveState === 0 ? 'text-muted' : item.liveState === 1 ? 'text-success' : 'text-muted';
+                            const stateText = item.liveState === 0 ? 'Coming Soon' : item.liveState === 1 ? 'Live Now' : item.liveState === 4 ? 'Ended' : 'Unknown';
+                            const stateClass = item.liveState === 0 ? 'text-muted' : item.liveState === 1 ? 'text-success' : item.liveState === 4 ? 'text-secondary' : 'text-muted';
                             $body.append(
                                 $('<p>')
                                     .addClass(`card-text ${stateClass}`)
