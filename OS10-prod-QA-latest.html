@@ -628,6 +628,65 @@
             100% { background-position: -200% 0; }
         }
 
+        /* Match schedule preview item (contentType=43) */
+        .subcol-match-item {
+            padding: 5px 4px 3px 4px;
+            background: #f8f9fa;
+        }
+
+        .subcol-match-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 3px;
+        }
+
+        .subcol-team-icon {
+            width: 22px !important;
+            height: 22px !important;
+            object-fit: contain !important;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .subcol-match-score {
+            flex: 1;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .subcol-score-vs {
+            font-size: 0.6rem;
+            color: #6c757d;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .subcol-score-text {
+            font-size: 0.72rem;
+            color: #0d6efd;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .subcol-match-names {
+            display: flex;
+            justify-content: space-between;
+            gap: 2px;
+            margin-top: 3px;
+        }
+
+        .subcol-team-name {
+            font-size: 0.58rem;
+            color: #495057;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            text-align: center;
+            max-width: 48%;
+        }
+
         .subcol-preview-status {
             padding: 6px 12px;
             font-size: 0.78rem;
@@ -1714,7 +1773,8 @@
 
 
         // Render sub-column content preview items into $wrapper
-        function renderSubcolPreview($wrapper, dataList, columnId) {
+        // contentType=43: match schedule EPG, renders team vs team card
+        function renderSubcolPreview($wrapper, dataList, columnId, contentType) {
             $wrapper.empty();
 
             if (!dataList || dataList.length === 0) {
@@ -1728,17 +1788,45 @@
             dataList.forEach(function(item) {
                 var $item = $('<div>').addClass('subcol-preview-item');
 
-                var $img = $('<img>')
-                    .attr('src', item.icon || PLACEHOLDER)
-                    .attr('alt', item.name || '')
-                    .attr('loading', 'lazy')
-                    .on('error', function() {
+                if (Number(contentType) === 43) {
+                    // Match schedule: render team icons + score/vs layout
+                    var gi = item.groupInfo || {};
+                    var homeName = gi.homeTeam || 'TBD';
+                    var awayName = gi.awayTeam || 'TBD';
+                    var homeIcon = gi.homeTeamIcon || PLACEHOLDER;
+                    var awayIcon = gi.awayTeamIcon || PLACEHOLDER;
+                    var hasScore = gi.homeScore !== undefined && gi.homeScore !== null &&
+                                   gi.awayScore !== undefined && gi.awayScore !== null;
+                    var scoreHtml = hasScore
+                        ? '<span class="subcol-score-text">' + gi.homeScore + '-' + gi.awayScore + '</span>'
+                        : '<span class="subcol-score-vs">vs</span>';
+
+                    $item.addClass('subcol-match-item').html(
+                        '<div class="subcol-match-row">' +
+                            '<img class="subcol-team-icon" src="' + homeIcon + '" alt="' + homeName + '" loading="lazy">' +
+                            '<div class="subcol-match-score">' + scoreHtml + '</div>' +
+                            '<img class="subcol-team-icon" src="' + awayIcon + '" alt="' + awayName + '" loading="lazy">' +
+                        '</div>' +
+                        '<div class="subcol-match-names">' +
+                            '<span class="subcol-team-name" title="' + homeName + '">' + homeName + '</span>' +
+                            '<span class="subcol-team-name" title="' + awayName + '">' + awayName + '</span>' +
+                        '</div>'
+                    );
+                    $item.find('.subcol-team-icon').on('error', function() {
                         $(this).attr('src', PLACEHOLDER);
                     });
-
-                var $name = $('<div>').addClass('subcol-preview-name').text(item.name || '');
-
-                $item.append($img, $name);
+                } else {
+                    // Regular content: thumbnail image + name
+                    var $img = $('<img>')
+                        .attr('src', item.icon || PLACEHOLDER)
+                        .attr('alt', item.name || '')
+                        .attr('loading', 'lazy')
+                        .on('error', function() {
+                            $(this).attr('src', PLACEHOLDER);
+                        });
+                    var $name = $('<div>').addClass('subcol-preview-name').text(item.name || '');
+                    $item.append($img, $name);
+                }
 
                 $item.on('click', function(e) {
                     e.stopPropagation();
@@ -1785,12 +1873,15 @@
                         // Fetch with one retry on failure
                         getColumnContent(columnId).then(function(data) {
                             var dataList = (data && data.content && data.content.dataList) ? data.content.dataList : [];
-                            renderSubcolPreview($wrapper, dataList, columnId);
+                            var contentType = (data && data.content && data.content.contentType != null) ? Number(data.content.contentType) : 0;
+                            console.log('[preview] col=' + columnId + ' contentType=' + contentType + ' items=' + dataList.length);
+                            renderSubcolPreview($wrapper, dataList, columnId, contentType);
                         }).catch(function() {
                             // Retry once
                             getColumnContent(columnId).then(function(data) {
                                 var dataList = (data && data.content && data.content.dataList) ? data.content.dataList : [];
-                                renderSubcolPreview($wrapper, dataList, columnId);
+                                var contentType = (data && data.content && data.content.contentType != null) ? Number(data.content.contentType) : 0;
+                                renderSubcolPreview($wrapper, dataList, columnId, contentType);
                             }).catch(function() {
                                 $wrapper.html('<span class="subcol-preview-status">Failed to load</span>');
                             });
