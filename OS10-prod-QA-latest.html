@@ -511,6 +511,130 @@
             }
         }
     </style>
+    <style>
+        /* Sub-column content preview strip - v1.1.0 */
+        .subcol-preview-strip-wrapper {
+            margin: 4px 0 8px 0;
+        }
+
+        .subcol-preview-strip {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            padding: 4px 2px 8px 2px;
+            scrollbar-width: thin;
+            scrollbar-color: #dee2e6 transparent;
+        }
+
+        .subcol-preview-strip::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .subcol-preview-strip::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .subcol-preview-strip::-webkit-scrollbar-thumb {
+            background: #dee2e6;
+            border-radius: 2px;
+        }
+
+        /* Items: fixed width, image fills full width at natural aspect ratio — no gray, no crop */
+        .subcol-preview-item {
+            flex: 0 0 auto;
+            width: calc((100% - 6 * 8px) / 6.5);
+            min-width: 80px;
+            max-width: 160px;
+            cursor: pointer;
+            border-radius: 4px;
+            overflow: hidden;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            border: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .subcol-preview-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* width:100% ensures image fills item width (no side gaps).
+           height:auto preserves natural aspect ratio (no crop).
+           Portrait images will be taller (~2x landscape), which is acceptable. */
+        .subcol-preview-item img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .subcol-preview-name {
+            width: 100%;
+            font-size: 0.7rem;
+            color: #495057;
+            padding: 3px 4px;
+            text-align: center;
+            white-space: normal;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            word-break: break-word;
+            line-height: 1.3;
+            box-sizing: border-box;
+        }
+
+        /* Narrow screen: 4-5 items visible */
+        @media (max-width: 768px) {
+            .subcol-preview-item {
+                width: calc((100% - 4 * 8px) / 4.5);
+                min-width: 64px;
+            }
+        }
+
+        /* Skeleton screen */
+        .subcol-skeleton {
+            display: flex;
+            gap: 8px;
+            padding: 4px 2px 8px 2px;
+            overflow: hidden;
+        }
+
+        .subcol-skeleton-item {
+            flex: 0 0 auto;
+            width: calc((100% - 6 * 8px) / 6.5);
+            min-width: 80px;
+            max-width: 160px;
+            height: 88px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 1.4s infinite;
+        }
+
+        @media (max-width: 768px) {
+            .subcol-skeleton-item {
+                width: calc((100% - 4 * 8px) / 4.5);
+                min-width: 64px;
+                height: 72px;
+            }
+        }
+
+        @keyframes skeleton-shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .subcol-preview-status {
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            color: #6c757d;
+            font-style: italic;
+        }
+    </style>
 </head>
 <body>
     <div class="container-fluid">
@@ -1089,6 +1213,13 @@
                 }
 
                 $li.append($content);
+
+                // Add preview strip for leaf nodes (lazy-load)
+                if (!item.children?.length) {
+                    var $previewWrapper = $('<div>').addClass('subcol-preview-strip-wrapper');
+                    $li.append($previewWrapper);
+                    initSubcolPreview(item.id, $previewWrapper[0]);
+                }
                 
                 // Recursive rendering
                 if (isParentNode) {
@@ -1579,6 +1710,96 @@
                     </div>
                 `);
             }
+        }
+
+
+        // Render sub-column content preview items into $wrapper
+        function renderSubcolPreview($wrapper, dataList, columnId) {
+            $wrapper.empty();
+
+            if (!dataList || dataList.length === 0) {
+                $wrapper.html('<span class="subcol-preview-status">no data</span>');
+                return;
+            }
+
+            var PLACEHOLDER = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+            var $strip = $('<div>').addClass('subcol-preview-strip');
+
+            dataList.forEach(function(item) {
+                var $item = $('<div>').addClass('subcol-preview-item');
+
+                var $img = $('<img>')
+                    .attr('src', item.icon || PLACEHOLDER)
+                    .attr('alt', item.name || '')
+                    .attr('loading', 'lazy')
+                    .on('error', function() {
+                        $(this).attr('src', PLACEHOLDER);
+                    });
+
+                var $name = $('<div>').addClass('subcol-preview-name').text(item.name || '');
+
+                $item.append($img, $name);
+
+                $item.on('click', function(e) {
+                    e.stopPropagation();
+                    try {
+                        var modal = new bootstrap.Modal('#contentModal');
+                        showLoading(modal);
+                        getColumnContent(columnId).then(function(contentData) {
+                            renderModalContent(contentData, modal);
+                        }).catch(function(err) {
+                            alert('Failed to load content: ' + err.message);
+                            var inst = bootstrap.Modal.getInstance('#contentModal');
+                            if (inst) inst.hide();
+                        });
+                    } catch (err) {
+                        alert('Failed to load content: ' + err.message);
+                    }
+                });
+
+                $strip.append($item);
+            });
+
+            $wrapper.append($strip);
+        }
+
+        // Initialize lazy-load IntersectionObserver for a leaf node preview wrapper
+        function initSubcolPreview(columnId, wrapperEl) {
+            var $wrapper = $(wrapperEl);
+            var loaded = false;
+
+            var observer = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting && !loaded) {
+                        loaded = true;
+                        observer.disconnect();
+
+                        // Show skeleton (6 placeholders)
+                        var skeletonHtml = '<div class="subcol-skeleton">';
+                        for (var i = 0; i < 6; i++) {
+                            skeletonHtml += '<div class="subcol-skeleton-item"></div>';
+                        }
+                        skeletonHtml += '</div>';
+                        $wrapper.html(skeletonHtml);
+
+                        // Fetch with one retry on failure
+                        getColumnContent(columnId).then(function(data) {
+                            var dataList = (data && data.content && data.content.dataList) ? data.content.dataList : [];
+                            renderSubcolPreview($wrapper, dataList, columnId);
+                        }).catch(function() {
+                            // Retry once
+                            getColumnContent(columnId).then(function(data) {
+                                var dataList = (data && data.content && data.content.dataList) ? data.content.dataList : [];
+                                renderSubcolPreview($wrapper, dataList, columnId);
+                            }).catch(function() {
+                                $wrapper.html('<span class="subcol-preview-status">Failed to load</span>');
+                            });
+                        });
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            observer.observe(wrapperEl);
         }
 
         // Error handling
