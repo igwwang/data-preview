@@ -648,11 +648,11 @@
             box-sizing: border-box;
         }
 
-        /* Narrow screen: 4-5 items visible */
+        /* Narrow screen: ~3 items visible (1.5× larger than before) */
         @media (max-width: 768px) {
             .subcol-preview-item {
-                width: calc((100% - 4 * 8px) / 4.5);
-                min-width: 64px;
+                width: calc((100% - 2 * 8px) / 3);
+                min-width: 96px;
             }
         }
 
@@ -678,9 +678,9 @@
 
         @media (max-width: 768px) {
             .subcol-skeleton-item {
-                width: calc((100% - 4 * 8px) / 4.5);
-                min-width: 64px;
-                height: 72px;
+                width: calc((100% - 2 * 8px) / 3);
+                min-width: 96px;
+                height: 108px;
             }
         }
 
