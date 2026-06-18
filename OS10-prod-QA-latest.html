@@ -1439,7 +1439,11 @@
                 data.content.dataList.forEach(item => {
                     const $col = $('<div>').addClass('col-12 col-md-6 col-lg-4 mb-4');
                     const $card = $('<div>').addClass('card h-100 shadow-sm');
-                    
+
+                    // contentType=1 + rsType=2: name is taken from value
+                    const _contentType = data.content.contentType;
+                    const effectiveName = (_contentType === 1 && item.rsType === 2) ? (item.value || '') : item.name;
+
                     // Parse objectType based on rsType
                     let objectType = 'N/A';
                     if (item.rsType === 6) {
@@ -1491,19 +1495,20 @@
                         $imgContainer.append($overlay);
 
                         $card.append($imgContainer);
-                    } else if (item.rsType === 2) {
-                        // For rsType=2 with empty icon, display value as text
+                    } else if (item.rsType === 2 && _contentType !== 1) {
+                        // For rsType=2 with empty icon (and contentType≠1), display value as text
                         const $textContainer = $('<div>').addClass('p-4 text-center');
                         $textContainer.append(
                             $('<p>').addClass('text-muted mb-0').css('font-size', '0.85em').text(item.value || 'N/A')
                         );
                         $card.append($textContainer);
                     }
+                    // When contentType=1 && rsType=2 && no icon: show nothing above card body (name-only card)
 
                     // Content body
                     const $body = $('<div>').addClass('card-body');
-                    // Title part
-                    $body.append($('<h5>').addClass('card-title').text(item.name));
+                    // Title part (contentType=1 + rsType=2: use value as name)
+                    $body.append($('<h5>').addClass('card-title').text(effectiveName));
                     
                     // Description part
                     if (item.briefDesc) {
@@ -1867,8 +1872,20 @@
             dataList.forEach(function(item) {
                 var $item = $('<div>').addClass('subcol-preview-item');
 
-                if (item.rsType === 2) {
-                    // Text-only item (rsType=2): no icon, display value field as text
+                if (Number(contentType) === 1 && item.rsType === 2) {
+                    // contentType=1 + rsType=2: name = value, icon optional
+                    if (item.icon) {
+                        var $iconImg = $('<img>')
+                            .attr('src', item.icon)
+                            .attr('alt', item.value || '')
+                            .attr('loading', 'lazy')
+                            .on('error', function() { $(this).attr('src', PLACEHOLDER); });
+                        $item.append($iconImg);
+                    }
+                    var $nameVal = $('<div>').addClass('subcol-preview-name').text(item.value || '');
+                    $item.append($nameVal);
+                } else if (item.rsType === 2) {
+                    // rsType=2 (other contentTypes): display value field as text, no icon
                     var $textVal = $('<div>').addClass('subcol-text-value').text(item.value || 'N/A');
                     $item.append($textVal);
                 } else if (Number(contentType) === 43) {
