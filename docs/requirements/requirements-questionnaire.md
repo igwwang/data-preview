@@ -1,4 +1,4 @@
-# OS10-prod-QA-latest 子栏目内容预览条 - 需求分析问卷
+# OS10-prod-QA-latest 预览行点击直达 Resource Details - 需求分析问卷
 
 > **填写说明**:
 >
@@ -11,23 +11,21 @@
 ## 已确认信息汇总
 
 
-| 项目         | 确认内容                                                                         |
-| ------------ | -------------------------------------------------------------------------------- |
-| 目标文件     | OS10-prod-QA-latest.html                                                         |
-| 功能描述     | 在首页树形结构的子栏目名称下，各增加一行水平滚动的内容预览条                     |
-| 数据来源     | `column/content` 接口返回的 `dataList`，取每项的 `icon`（图片）和 `name`（名称） |
-| 宽屏可见数量 | 6-7 个                                                                           |
-| 窄屏可见数量 | 4-5 个                                                                           |
-| 移动端交互   | 手势平滑水平滚动                                                                 |
-| 图片尺寸     | 小尺寸                                                                           |
-| 空数据处理   | 展示 "no data"                                                                   |
-| 版本号       | v1.1.0                                                                           |
+| 项目             | 确认内容                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| 目标文件         | OS10-prod-QA-latest.html                                                             |
+| 触发位置         | 预览条（`.subcol-preview-strip`）中的每个 item                                       |
+| 目标行为         | 点击 item 直接打开 Resource Details 弹窗（`#resourceDetailModal`）                   |
+| 现有逻辑         | 点击 item 当前打开 contentModal（展示该列全部内容）                                  |
+| 技术可行性       | `item` 在 `forEach` 闭包内已含 `rsType` 和 `value`，可直接传给 `getResourceDetail()` |
+| 不支持详情的类型 | `rsType` 31/32/30/2，以及 contentType=43（match schedule）                           |
+| 版本号           | v1.2.0                                                                               |
 
 ---
 
 ## 立项/预研确认
 
-✅ **方向确认**: 在现有树形结构页面中扩展，不新建页面。技术栈沿用 jQuery + Bootstrap 5，无需引入新依赖。
+✅ **方向确认**: 修改现有预览条 item 的 click handler，复用已有的 `getResourceDetail()` + `renderResourceDetail()` + `#resourceDetailModal` 流程，无需引入新依赖。
 
 ---
 
@@ -35,111 +33,68 @@
 
 ### 1.1 适用范围
 
-✅ **目标节点**: 子栏目（即树中的叶子节点，无 children 的节点）
-
-❓ **Q1**: 预览条应在哪些节点下展示？
-
-- a) 仅叶子节点（没有子节点的节点，即当前可点击加载内容的节点）
-- b) 所有父节点（有子节点的节点，在其子节点列表之前展示汇总预览）
-- c) 父节点和叶子节点都展示
-
-回答：a
-
----
-
-## 第2章 目标用户
-
-✅ **用户**: 内部 QA/开发人员，使用浏览器调试 TV 数据接口返回内容。
+✅ **目标**: 预览条（subcol-preview-strip）中每个可渲染的 item，点击后直接进入 Resource Details，跳过现有的 contentModal 中转步骤。
 
 ---
 
 ## 第3章 核心场景
 
-✅ **核心场景**: QA 人员打开页面后，无需逐个点击子栏目，即可在首屏快速扫描各子栏目的内容缩略图，提升数据核查效率。
+✅ **核心场景**: QA 人员在预览条中看到某个感兴趣的内容项，直接点击即可查看该资源的详细信息（海报、描述、deeplinks 等），无需先打开 contentModal 再找到该 item 再点卡片。
 
 ---
 
 ## 第4章 功能需求
 
-### 4.1 数据加载时机
+### 4.1 不支持 Resource Details 的 item 的降级行为
 
-❓ **Q2**: 子栏目预览条的数据加载策略？
+❓ **Q1**: 对于不支持 Resource Details 的 item（rsType=2/30/31/32 及 match schedule），点击后的行为？
 
-- a) 懒加载：节点滚动进入视口时再请求（推荐，减少首屏请求量）
-- b) 全量加载：页面初始化后并发请求所有子栏目内容
-- c) 按需加载：点击展开父节点时加载其子栏目内容
-
-回答：a
-
-### 4.2 图片规格
-
-❓ **Q3**: 预览条中图片的展示形态？
-
-- a) 固定宽高比 16:9（适合电视内容封面/banner）
-- b) 固定宽高比 1:1（适合 APP 图标类内容）
-- c) 原始比例，限制最大高度（自适应）
+- a) 什么都不做（静默，无反馈）
+- b) 回退打开 contentModal（保持原有行为）
+- c) 弹出提示 "No details available for this item"
 
 回答：c
 
-### 4.3 点击交互
+### 4.2 rsType=6 / rsType=12 以外的普通类型
 
-❓ **Q4**: 预览条中点击某个内容项时的行为？
+当前 card click 逻辑对非 6/12 且 objectType 非 REC_CHANNEL/REC_PROGRAM 的 item 会弹 alert "For simple types, no further information is needed."
 
-- a) 无交互（仅展示，不可点击）
-- b) 点击后打开该子栏目的完整内容弹窗（复用现有 contentModal）
-- c) 点击后打开图片大图预览
+❓ **Q2**: 预览条 item 点击遇到此类"简单类型"时的行为，与 Q1 保持一致，还是单独处理？
 
-回答：b
-
-### 4.4 加载状态
-
-❓ **Q5**: 预览条内容加载期间的占位样式？
-
-- a) 显示骨架屏（灰色矩形占位）
-- b) 显示 spinner 加载动画
-- c) 不显示占位，加载完成后直接渲染
+- a) 与 Q1 保持一致（统一降级策略）
+- b) 同现有 card click 逻辑，弹 alert 提示
 
 回答：a
 
----
+### 4.3 contentType=1 + rsType=2（文本类型）
 
-## 第5章 非功能需求
+此类 item 的 value 是内容本身（非 JSON），无法调用 getResourceDetail。
 
-✅ **兼容性**: 与现有 Bootstrap 5 + jQuery 体系兼容，支持桌面端（Chrome/Firefox）和移动端浏览器。
+❓ **Q3**: 此类 item 是否需要可点击？
 
-✅ **性能**: 宽屏 6-7 个、窄屏 4-5 个可见，图片按需加载（利用 loading="lazy"）。
+- a) 不可点击，cursor 保持默认，无任何反馈
+- b) 点击后回退打开 contentModal
 
----
+回答：弹 alert "For simple types, no further information is needed."
 
-## 第6章 约束条件
+### 4.4 加载过渡体验
 
-✅ **技术约束**: 不引入新 JS/CSS 库，在单 HTML 文件内实现。
+❓ **Q4**: 点击 item 到 Resource Details 弹窗出现前，是否需要视觉反馈？
 
-✅ **数据约束**: 使用现有 `getColumnContent(columnId)` 函数获取数据，接口路径 `/sp/api/device/v1/column/content`。
+- a) 与现有 card click 一致：弹窗立即出现并显示 loading spinner
+- b) item 本身显示 loading 状态（如半透明 + spinner），弹窗数据就绪后再出现
 
-❓ **Q6**: API 请求失败时的处理方式？
-
-- a) 静默失败，预览条区域不显示任何内容
-- b) 显示错误提示（如 "Failed to load"）
-- c) 重试一次，仍失败则显示 "no data"
-
-回答：重试一次，仍失败则显示 "Failed to load"
+回答：a
 
 ---
 
 ## 第7章 验收标准
 
-✅ **视觉验收**:
+✅ **基础验收**:
 
-- 宽屏（≥992px）：一行可见 6-7 个缩略图
-- 窄屏（<768px）：一行可见 4-5 个缩略图
-- 超出部分支持水平滚动，隐藏纵向滚动条
-
-✅ **移动端验收**: touch 手势可平滑左右滑动，无卡顿。
-
-✅ **空数据验收**: 接口返回 dataList 为空时，预览条显示 "no data" 文本。
-
-✅ **图片容错**: icon 加载失败时显示默认占位图（与现有代码保持一致）。
+- 支持 Resource Details 的 item（rsType=6/12，objectType=REC_CHANNEL/REC_PROGRAM）点击后直接打开 `#resourceDetailModal`
+- 不支持的 item 按 Q1/Q2/Q3 答案处理
+- 不影响现有父节点展开/折叠及 contentModal 主流程
 
 ---
 

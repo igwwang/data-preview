@@ -1928,20 +1928,40 @@
                     $item.append($img, $name);
                 }
 
-                $item.on('click', function(e) {
+                $item.on('click', async function(e) {
                     e.stopPropagation();
+
+                    // match schedule items have no rsType/value — no details available
+                    if (Number(contentType) === 43) {
+                        alert('No details available');
+                        return;
+                    }
+
+                    // types that don't support resourceDetail
+                    if (item.rsType === 2 || item.rsType === 30 || item.rsType === 31 || item.rsType === 32) {
+                        alert('No details available');
+                        return;
+                    }
+
+                    // check objectType for non-6/12 types
+                    var objectType = 'N/A';
+                    try { objectType = JSON.parse(item.value).objectType || 'N/A'; } catch(ex) {}
+
+                    var supported = item.rsType === 6 || item.rsType === 12
+                        || objectType === 'REC_CHANNEL' || objectType === 'REC_PROGRAM';
+
+                    if (!supported) {
+                        alert('No details available');
+                        return;
+                    }
+
                     try {
-                        var modal = new bootstrap.Modal('#contentModal');
-                        showLoading(modal);
-                        getColumnContent(columnId).then(function(contentData) {
-                            renderModalContent(contentData, modal);
-                        }).catch(function(err) {
-                            alert('Failed to load content: ' + err.message);
-                            var inst = bootstrap.Modal.getInstance('#contentModal');
-                            if (inst) inst.hide();
-                        });
+                        var detailModal = new bootstrap.Modal('#resourceDetailModal');
+                        showDetailLoading(detailModal);
+                        var detailData = await getResourceDetail(item.rsType, item.value);
+                        renderResourceDetail(detailData, item.rsType);
                     } catch (err) {
-                        alert('Failed to load content: ' + err.message);
+                        alert('Failed to load details: ' + err.message);
                     }
                 });
 
