@@ -1,6 +1,7 @@
-# OS10-prod-QA-latest 子栏目 #id 复制 URL - 需求分析问卷
+# OS10-prod-QA-latest Country→langCode 联动 - 需求分析问卷
 
 > **填写说明**:
+>
 > - ✅ = 已确认，无需填写
 > - ❓ = 待回答，请在 **回答：** 后面填写选项字母或自由描述
 > - 填完后告诉我，我会读取并澄清矛盾点
@@ -9,122 +10,119 @@
 
 ## 已确认信息汇总
 
-| 项目 | 确认内容 |
-| ---- | -------- |
-| 目标文件 | OS10-prod-QA-latest.html |
-| 触发区域 | 树节点 node-content 中的 `#${item.id}` 小字文本区域 |
-| 核心行为 | 点击 #id 区域 → 不触发跳转/弹窗 → 复制完整 URL 到剪贴板 |
-| 使用目的 | 用户粘贴到浏览器直接调试查看 API 响应 |
-| 版本号 | v1.3.0 |
+
+| 项目         | 确认内容                                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------- |
+| 目标文件     | `OS10-prod-QA-latest.html`                                                                                  |
+| 功能入口     | Edit Device Configuration 弹窗（`#configModal`）                                                            |
+| 触发控件     | `#clientIpSelect` 下拉框（country-IP 列表）                                                                 |
+| 联动目标     | `langCode` 文本输入框（`input[name="langCode"]`）                                                           |
+| 现有国家列表 | Spain / Portugal / Italy / Brazil / Argentina / Chile / Mexico / Japan / France / Germany / Hong Kong / USA |
+| 版本号       | v1.4.0                                                                                                      |
 
 ---
 
 ## 立项/预研确认
 
-✅ **方向**: 纯前端 HTML 内改动，无新依赖，改动范围在 `buildNode()` 函数的 click 事件处理。
-
-✅ **技术可行性**: 已有 `copyPlayUrlBtn` 的 `navigator.clipboard.writeText` 用法可直接复用。
+✅ **方向**: 在选择 clientIp 国家时，自动填充对应官方语言码到 langCode 字段，减少手动修改步骤，提高调试效率。
 
 ---
 
-## 第1章 项目概述
+## 第1章 langCode 映射规则
 
-### 1.1 复制的 URL 内容
+### 1.1 语言码格式
 
-✅ **现状**: 叶节点（子栏目）对应的接口为 `/sp/api/device/v1/column/content?token=...&columnIds=...`
+❓ **Q1**: langCode 使用哪种格式？
 
-❓ **Q1**: 点击 #id 后，复制的 URL 应为哪个接口？
-- a) column content 接口：`/sp/api/device/v1/column/content?token=${globalToken}&columnIds=${item.id}`（用于查看子栏目内容）
-- b) column list 接口：`/sp/api/device/v1/column?token=${globalToken}`（用于查看全列数据）
-- c) 两者都要，分别复制
+- a) 2字母 ISO 639-1（如 `de`、`fr`、`ja`）
+- b) BCP 47 带区域（如 `de-DE`、`fr-FR`、`zh-HK`）
+- c) 与现有 `DEFAULT_PARAMS.langCode = 'en'` 保持一致，用现有值中出现的格式
+
+回答：a
+
+### 1.2 多官方语言国家处理
+
+以下国家存在多官方语言，需确认优先选哪一种：
+
+❓ **Q2**: Hong Kong 的 langCode 填什么？
+
+- a) `zh`（中文通用）
+- b) `zh-HK`（粤语/繁体香港）
+- c) `en`（英文，港英官方语言之一）
+
+回答：b
+
+❓ **Q3**: Brazil 的 langCode 填什么？
+
+- a) `pt`（葡萄牙语通用）
+- b) `pt-BR`（巴西葡萄牙语）
+
+回答：b
+
+❓ **Q4**: 西班牙语国家（Spain / Argentina / Chile / Mexico）是否统一用 `es`，还是各自带区域码（`es-ES` / `es-AR` / `es-CL` / `es-MX`）？
+
+- a) 统一用 `es`
+- b) 各自带区域码
 
 回答：a
 
 ---
 
-### 1.2 父节点的 #id 区域
+## 第2章 触发时机
 
-✅ **现状**: 父节点（有 children 的节点）目前无点击事件。
+### 2.1 dropdown 选择触发
 
-❓ **Q2**: 父节点的 `#id` 区域是否也需要支持点击复制 URL？
-- a) 是，父节点 #id 也可复制（URL 形式待 Q1 确认后定）
-- b) 否，只处理叶节点（子栏目）的 #id
+✅ **已确认**: 从 `#clientIpSelect` 下拉框选择国家时触发 langCode 自动填充。
+
+### 2.2 手动输入 IP 触发
+
+❓ **Q5**: 当用户在 IP 文本框手动输入一个能匹配 `COUNTRY_IP_LIST` 的 IP 时，是否也联动更新 langCode？
+
+- a) 是，匹配成功即更新 langCode
+- b) 否，仅 dropdown 选择触发
 
 回答：b
 
 ---
 
-### 1.3 叶节点原有点击行为
+## 第3章 用户覆盖行为
 
-✅ **现状**: 叶节点整个 node-content 区域点击会触发 contentModal 弹窗。
+### 3.1 自动填充后用户手动修改
 
-❓ **Q3**: 点击 #id 区域后，原有的弹窗行为如何处理？
-- a) 只复制 URL，不弹窗（stopPropagation 阻止冒泡）
-- b) 复制 URL 的同时也弹窗（两个行为并行）
+❓ **Q6**: 自动填充 langCode 后，如果用户又手动修改了 langCode 文本框，再次切换 dropdown 时是否覆盖用户的手动输入？
 
-回答：a
-
----
-
-## 第2章 目标用户
-
-✅ **目标用户**: 内部研发/QA 调试人员，使用此 HTML 预览 TV 数据。
-
----
-
-## 第3章 核心场景
-
-✅ **场景**: 用户看到树节点的 `#932409818680464025` 字样，点击该区域，系统将完整 API URL 复制到剪贴板，用户粘贴到浏览器地址栏查看原始响应数据。
-
----
-
-## 第4章 功能需求
-
-### 4.1 复制反馈
-
-❓ **Q4**: 复制成功后的用户反馈方式？
-- a) `#id` 文本短暂变成 "Copied!" 字样（1.5s 后恢复）
-- b) 在 #id 旁边短暂显示一个小 tooltip/badge 提示
-- c) 无视觉反馈（静默复制）
+- a) 是，dropdown 选择始终覆盖 langCode
+- b) 否，一旦用户手动编辑过，不再覆盖
 
 回答：a
 
 ---
 
-### 4.2 复制失败兜底
+## 第4章 Reset 行为
 
-❓ **Q5**: 浏览器不支持 Clipboard API（file:// 协议或旧浏览器）时的降级方案？
-- a) alert 弹出 URL，让用户手动复制
-- b) console.log 打印 URL，静默失败
-- c) 不处理（用户环境固定，不会出现此情况）
+### 4.1 点击 Reset 按钮
 
-回答：a
+✅ **已确认**: Reset 按钮（`#configResetBtn`）当前恢复所有字段为 `DEFAULT_PARAMS`，langCode 也回到默认值 `'en'`，与国家联动无冲突。
 
 ---
 
-## 第5章 非功能需求
+## 第5章 UI 反馈
 
-✅ **兼容性**: 只需支持 Chrome/Edge 现代浏览器，file:// 协议本地打开。
+❓ **Q7**: 自动填充 langCode 时，是否需要任何视觉提示（如高亮/提示文字"已自动填充"）？
 
-✅ **性能**: 纯同步 DOM 操作，无性能顾虑。
+- a) 不需要，静默填充即可
+- b) 短暂高亮输入框（如 1s 黄色背景）
+- c) 输入框旁显示小提示文字
+
+回答：b
 
 ---
 
 ## 第6章 约束条件
 
-✅ **不引入新依赖**: 禁止新增外部 JS/CSS 库。
+✅ **不引入新依赖**: 映射表直接硬编码在 HTML 文件 JS 中，无需外部数据源。
 
-✅ **最小改动原则**: 改动集中在 `buildNode()` 函数，不影响其他功能。
-
----
-
-## 第7章 验收标准
-
-1. 点击叶节点的 `#id` 文本区域，完整 column content URL 被复制到剪贴板，不弹出内容弹窗
-2. `#id` 文本在复制后短暂变为 "✓ Copied!" 并在 1.5s 内恢复原始 id 文本
-3. 父节点的 `#id` 区域点击行为不受影响（无事件绑定）
-4. Clipboard API 不可用时，alert 弹出完整 URL
-5. 主流程（节点名称点击 → contentModal 弹窗）无回归
+✅ **不做什么**: 不修改已保存 localStorage 中的 langCode（仅影响当前弹窗表单填充，保存时和现有逻辑一致）。
 
 ---
 

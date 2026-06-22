@@ -956,6 +956,22 @@
             { country: 'USA',        ip: '8.34.210.0' }
         ];
 
+        // Country -> official language code mapping (ISO 639-1, with regional exceptions)
+        const COUNTRY_LANG_MAP = {
+            '94.127.167.255':  'es',      // Spain
+            '79.168.0.0':      'pt',      // Portugal
+            '151.95.219.6':    'it',      // Italy
+            '187.16.202.172':  'pt-BR',   // Brazil
+            '1.178.48.0':      'es',      // Argentina
+            '38.7.221.172':    'es',      // Chile
+            '148.233.239.0':   'es',      // Mexico
+            '221.86.134.130':  'ja',      // Japan
+            '45.154.138.26':   'fr',      // France
+            '45.86.202.30':    'de',      // Germany
+            '122.10.101.131':  'zh-HK',   // Hong Kong
+            '8.34.210.0':      'en'       // USA
+        };
+
         // 运行时全局参数（从默认值复制）
         const GLOBAL_PARAMS = { ...DEFAULT_PARAMS };
 
@@ -3070,6 +3086,15 @@
                 const selectedIp = $(this).val();
                 if (selectedIp) {
                     $('input[name="clientIp"]').val(selectedIp);
+                    // --- v1.4.0: auto-fill langCode based on selected country ---
+                    const lang = COUNTRY_LANG_MAP[selectedIp];
+                    if (lang) {
+                        const $langInput = $('input[name="langCode"]');
+                        $langInput.val(lang);
+                        $langInput.css('background-color', '#fff3cd');
+                        setTimeout(() => $langInput.css('background-color', ''), 1000);
+                    }
+                    // --- v1.4.0 end ---
                 }
             });
             // Sync input field to dropdown (highlight matching option when typing)
