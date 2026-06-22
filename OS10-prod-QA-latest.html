@@ -1330,9 +1330,23 @@
                         <small class="text-muted ms-2">#${item.id}</small>
                     `);
 
-                // Click handler
-                if (!item.children?.length) {
-                    $content.click(async function() {
+        // Click handler
+        if (!item.children?.length) {
+            // #id badge click: copy column content URL to clipboard (v1.3.0)
+            const $idBadge = $content.find('small');
+            $idBadge.css('cursor', 'pointer').on('click', async function(e) {
+                e.stopPropagation();
+                const url = `${API_BASE_URL}/sp/api/device/v1/column/content?token=${globalToken}&columnIds=${item.id}`;
+                try {
+                    await navigator.clipboard.writeText(url);
+                    const orig = $(this).text();
+                    $(this).text('\u2713 Copied!');
+                    setTimeout(() => $(this).text(orig), 1500);
+                } catch (err) {
+                    alert('Copy failed. URL:\n' + url);
+                }
+            });
+            $content.click(async function() {
                         try {
                             // Highlight node
                             if (activeNode) activeNode.removeClass('active-node');

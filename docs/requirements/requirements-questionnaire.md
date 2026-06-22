@@ -1,7 +1,6 @@
-# OS10-prod-QA-latest 预览行点击直达 Resource Details - 需求分析问卷
+# OS10-prod-QA-latest 子栏目 #id 复制 URL - 需求分析问卷
 
 > **填写说明**:
->
 > - ✅ = 已确认，无需填写
 > - ❓ = 待回答，请在 **回答：** 后面填写选项字母或自由描述
 > - 填完后告诉我，我会读取并澄清矛盾点
@@ -10,91 +9,122 @@
 
 ## 已确认信息汇总
 
-
-| 项目             | 确认内容                                                                             |
-| ---------------- | ------------------------------------------------------------------------------------ |
-| 目标文件         | OS10-prod-QA-latest.html                                                             |
-| 触发位置         | 预览条（`.subcol-preview-strip`）中的每个 item                                       |
-| 目标行为         | 点击 item 直接打开 Resource Details 弹窗（`#resourceDetailModal`）                   |
-| 现有逻辑         | 点击 item 当前打开 contentModal（展示该列全部内容）                                  |
-| 技术可行性       | `item` 在 `forEach` 闭包内已含 `rsType` 和 `value`，可直接传给 `getResourceDetail()` |
-| 不支持详情的类型 | `rsType` 31/32/30/2，以及 contentType=43（match schedule）                           |
-| 版本号           | v1.2.0                                                                               |
+| 项目 | 确认内容 |
+| ---- | -------- |
+| 目标文件 | OS10-prod-QA-latest.html |
+| 触发区域 | 树节点 node-content 中的 `#${item.id}` 小字文本区域 |
+| 核心行为 | 点击 #id 区域 → 不触发跳转/弹窗 → 复制完整 URL 到剪贴板 |
+| 使用目的 | 用户粘贴到浏览器直接调试查看 API 响应 |
+| 版本号 | v1.3.0 |
 
 ---
 
 ## 立项/预研确认
 
-✅ **方向确认**: 修改现有预览条 item 的 click handler，复用已有的 `getResourceDetail()` + `renderResourceDetail()` + `#resourceDetailModal` 流程，无需引入新依赖。
+✅ **方向**: 纯前端 HTML 内改动，无新依赖，改动范围在 `buildNode()` 函数的 click 事件处理。
+
+✅ **技术可行性**: 已有 `copyPlayUrlBtn` 的 `navigator.clipboard.writeText` 用法可直接复用。
 
 ---
 
 ## 第1章 项目概述
 
-### 1.1 适用范围
+### 1.1 复制的 URL 内容
 
-✅ **目标**: 预览条（subcol-preview-strip）中每个可渲染的 item，点击后直接进入 Resource Details，跳过现有的 contentModal 中转步骤。
+✅ **现状**: 叶节点（子栏目）对应的接口为 `/sp/api/device/v1/column/content?token=...&columnIds=...`
+
+❓ **Q1**: 点击 #id 后，复制的 URL 应为哪个接口？
+- a) column content 接口：`/sp/api/device/v1/column/content?token=${globalToken}&columnIds=${item.id}`（用于查看子栏目内容）
+- b) column list 接口：`/sp/api/device/v1/column?token=${globalToken}`（用于查看全列数据）
+- c) 两者都要，分别复制
+
+回答：a
+
+---
+
+### 1.2 父节点的 #id 区域
+
+✅ **现状**: 父节点（有 children 的节点）目前无点击事件。
+
+❓ **Q2**: 父节点的 `#id` 区域是否也需要支持点击复制 URL？
+- a) 是，父节点 #id 也可复制（URL 形式待 Q1 确认后定）
+- b) 否，只处理叶节点（子栏目）的 #id
+
+回答：b
+
+---
+
+### 1.3 叶节点原有点击行为
+
+✅ **现状**: 叶节点整个 node-content 区域点击会触发 contentModal 弹窗。
+
+❓ **Q3**: 点击 #id 区域后，原有的弹窗行为如何处理？
+- a) 只复制 URL，不弹窗（stopPropagation 阻止冒泡）
+- b) 复制 URL 的同时也弹窗（两个行为并行）
+
+回答：a
+
+---
+
+## 第2章 目标用户
+
+✅ **目标用户**: 内部研发/QA 调试人员，使用此 HTML 预览 TV 数据。
 
 ---
 
 ## 第3章 核心场景
 
-✅ **核心场景**: QA 人员在预览条中看到某个感兴趣的内容项，直接点击即可查看该资源的详细信息（海报、描述、deeplinks 等），无需先打开 contentModal 再找到该 item 再点卡片。
+✅ **场景**: 用户看到树节点的 `#932409818680464025` 字样，点击该区域，系统将完整 API URL 复制到剪贴板，用户粘贴到浏览器地址栏查看原始响应数据。
 
 ---
 
 ## 第4章 功能需求
 
-### 4.1 不支持 Resource Details 的 item 的降级行为
+### 4.1 复制反馈
 
-❓ **Q1**: 对于不支持 Resource Details 的 item（rsType=2/30/31/32 及 match schedule），点击后的行为？
-
-- a) 什么都不做（静默，无反馈）
-- b) 回退打开 contentModal（保持原有行为）
-- c) 弹出提示 "No details available for this item"
-
-回答：c
-
-### 4.2 rsType=6 / rsType=12 以外的普通类型
-
-当前 card click 逻辑对非 6/12 且 objectType 非 REC_CHANNEL/REC_PROGRAM 的 item 会弹 alert "For simple types, no further information is needed."
-
-❓ **Q2**: 预览条 item 点击遇到此类"简单类型"时的行为，与 Q1 保持一致，还是单独处理？
-
-- a) 与 Q1 保持一致（统一降级策略）
-- b) 同现有 card click 逻辑，弹 alert 提示
-
-回答：a
-
-### 4.3 contentType=1 + rsType=2（文本类型）
-
-此类 item 的 value 是内容本身（非 JSON），无法调用 getResourceDetail。
-
-❓ **Q3**: 此类 item 是否需要可点击？
-
-- a) 不可点击，cursor 保持默认，无任何反馈
-- b) 点击后回退打开 contentModal
-
-回答：弹 alert "For simple types, no further information is needed."
-
-### 4.4 加载过渡体验
-
-❓ **Q4**: 点击 item 到 Resource Details 弹窗出现前，是否需要视觉反馈？
-
-- a) 与现有 card click 一致：弹窗立即出现并显示 loading spinner
-- b) item 本身显示 loading 状态（如半透明 + spinner），弹窗数据就绪后再出现
+❓ **Q4**: 复制成功后的用户反馈方式？
+- a) `#id` 文本短暂变成 "Copied!" 字样（1.5s 后恢复）
+- b) 在 #id 旁边短暂显示一个小 tooltip/badge 提示
+- c) 无视觉反馈（静默复制）
 
 回答：a
 
 ---
 
+### 4.2 复制失败兜底
+
+❓ **Q5**: 浏览器不支持 Clipboard API（file:// 协议或旧浏览器）时的降级方案？
+- a) alert 弹出 URL，让用户手动复制
+- b) console.log 打印 URL，静默失败
+- c) 不处理（用户环境固定，不会出现此情况）
+
+回答：a
+
+---
+
+## 第5章 非功能需求
+
+✅ **兼容性**: 只需支持 Chrome/Edge 现代浏览器，file:// 协议本地打开。
+
+✅ **性能**: 纯同步 DOM 操作，无性能顾虑。
+
+---
+
+## 第6章 约束条件
+
+✅ **不引入新依赖**: 禁止新增外部 JS/CSS 库。
+
+✅ **最小改动原则**: 改动集中在 `buildNode()` 函数，不影响其他功能。
+
+---
+
 ## 第7章 验收标准
 
-✅ **基础验收**:
-
-- 支持 Resource Details 的 item（rsType=6/12，objectType=REC_CHANNEL/REC_PROGRAM）点击后直接打开 `#resourceDetailModal`
-- 不支持的 item 按 Q1/Q2/Q3 答案处理
-- 不影响现有父节点展开/折叠及 contentModal 主流程
+1. 点击叶节点的 `#id` 文本区域，完整 column content URL 被复制到剪贴板，不弹出内容弹窗
+2. `#id` 文本在复制后短暂变为 "✓ Copied!" 并在 1.5s 内恢复原始 id 文本
+3. 父节点的 `#id` 区域点击行为不受影响（无事件绑定）
+4. Clipboard API 不可用时，alert 弹出完整 URL
+5. 主流程（节点名称点击 → contentModal 弹窗）无回归
 
 ---
 
