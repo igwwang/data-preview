@@ -1,4 +1,4 @@
-# OS10-prod-QA-latest Country→langCode 联动 - 需求分析问卷
+# OS10-prod-QA-latest 首页子栏目预览行时间字段展示 - 需求分析问卷
 
 > **填写说明**:
 >
@@ -11,118 +11,86 @@
 ## 已确认信息汇总
 
 
-| 项目         | 确认内容                                                                                                    |
-| ------------ | ----------------------------------------------------------------------------------------------------------- |
-| 目标文件     | `OS10-prod-QA-latest.html`                                                                                  |
-| 功能入口     | Edit Device Configuration 弹窗（`#configModal`）                                                            |
-| 触发控件     | `#clientIpSelect` 下拉框（country-IP 列表）                                                                 |
-| 联动目标     | `langCode` 文本输入框（`input[name="langCode"]`）                                                           |
-| 现有国家列表 | Spain / Portugal / Italy / Brazil / Argentina / Chile / Mexico / Japan / France / Germany / Hong Kong / USA |
-| 版本号       | v1.4.0                                                                                                      |
+| 项目     | 确认内容                                                                |
+| -------- | ----------------------------------------------------------------------- |
+| 目标文件 | `OS10-prod-QA-latest.html`                                              |
+| 目标函数 | `renderSubcolPreview($wrapper, dataList, columnId, contentType)`        |
+| 数据来源 | column/content 接口返回的`dataList` 数组中的 item                       |
+| 展示位置 | 每个卡片（`.subcol-preview-item`）下方                                  |
+| 字段1    | `liveStartTime` → 格式 `2026-06-29 14:54:00`，展示为 `Start Time: ...` |
+| 字段2    | `release` 相关字段 → 格式 `2026-06-29`，展示为 `Release Time: ...`     |
+| 版本号   | v1.5.0                                                                  |
 
 ---
 
 ## 立项/预研确认
 
-✅ **方向**: 在选择 clientIp 国家时，自动填充对应官方语言码到 langCode 字段，减少手动修改步骤，提高调试效率。
+✅ **方向**: 在首页子栏目预览行（subcol preview strip）的卡片下方，新增 `liveStartTime` 和 release 日期字段的格式化展示，便于 QA 快速核对直播/上线时间。
 
 ---
 
-## 第1章 langCode 映射规则
+## 第1章 字段名称确认
 
-### 1.1 语言码格式
+### 1.1 release 字段
 
-❓ **Q1**: langCode 使用哪种格式？
+❓ **Q1**: release 日期对应的 item 字段名是哪个？
 
-- a) 2字母 ISO 639-1（如 `de`、`fr`、`ja`）
-- b) BCP 47 带区域（如 `de-DE`、`fr-FR`、`zh-HK`）
-- c) 与现有 `DEFAULT_PARAMS.langCode = 'en'` 保持一致，用现有值中出现的格式
-
-回答：a
-
-### 1.2 多官方语言国家处理
-
-以下国家存在多官方语言，需确认优先选哪一种：
-
-❓ **Q2**: Hong Kong 的 langCode 填什么？
-
-- a) `zh`（中文通用）
-- b) `zh-HK`（粤语/繁体香港）
-- c) `en`（英文，港英官方语言之一）
-
-回答：b
-
-❓ **Q3**: Brazil 的 langCode 填什么？
-
-- a) `pt`（葡萄牙语通用）
-- b) `pt-BR`（巴西葡萄牙语）
-
-回答：b
-
-❓ **Q4**: 西班牙语国家（Spain / Argentina / Chile / Mexico）是否统一用 `es`，还是各自带区域码（`es-ES` / `es-AR` / `es-CL` / `es-MX`）？
-
-- a) 统一用 `es`
-- b) 各自带区域码
-
-回答：a
-
----
-
-## 第2章 触发时机
-
-### 2.1 dropdown 选择触发
-
-✅ **已确认**: 从 `#clientIpSelect` 下拉框选择国家时触发 langCode 自动填充。
-
-### 2.2 手动输入 IP 触发
-
-❓ **Q5**: 当用户在 IP 文本框手动输入一个能匹配 `COUNTRY_IP_LIST` 的 IP 时，是否也联动更新 langCode？
-
-- a) 是，匹配成功即更新 langCode
-- b) 否，仅 dropdown 选择触发
+- a) `item.release`（纯日期字符串，如 `"2026-06-29"` 或时间戳）
+- b) `item.releaseTime`（Unix 时间戳，与主卡片区用法一致：`item.releaseTime > 0`）
 
 回答：b
 
 ---
 
-## 第3章 用户覆盖行为
+## 第2章 liveStartTime 数据格式
 
-### 3.1 自动填充后用户手动修改
+### 2.1 时间戳类型
 
-❓ **Q6**: 自动填充 langCode 后，如果用户又手动修改了 langCode 文本框，再次切换 dropdown 时是否覆盖用户的手动输入？
+✅ **现有代码参考**: 主卡片区使用 `new Date(parseInt(item.liveStartTime)).toLocaleString()` 处理 `liveStartTime`，推断为毫秒级 Unix 时间戳。
 
-- a) 是，dropdown 选择始终覆盖 langCode
-- b) 否，一旦用户手动编辑过，不再覆盖
+❓ **Q2**: 格式化 `liveStartTime` 时，时区使用哪种？
+
+- a) 本地时区（`new Date(ts)` 直接格式化，与设备时区一致）
+- b) UTC 时间（保持与 Release Time(UTC) 标签一致的风格）
+
+回答：UTC+8
+
+---
+
+## 第3章 展示分支范围
+
+### 3.1 适用的内容类型
+
+`renderSubcolPreview` 内部有四个展示分支，需确认哪些分支需要追加时间字段：
+
+❓ **Q3**: 以下哪些分支需要显示时间字段？
+
+- a) 仅默认（`else`）分支——普通内容（缩略图+名称），即 rsType≠2 且 contentType≠43
+- b) 默认分支 + contentType=1 && rsType=2 分支
+- c) 全部分支（包括 rsType=2 纯文本和 contentType=43 赛程卡）
+
+回答：只要接口有返回liveStartTime或release，就需要追加时间字段
+
+---
+
+## 第4章 视觉样式
+
+### 4.1 展示样式
+
+❓ **Q4**: 时间字段的展示样式？
+
+- a) 小字灰色文本（与现有 `.subcol-preview-name` 保持类似字号，添加新 class `subcol-preview-time`）
+- b) 直接复用现有样式，无需新增 class
 
 回答：a
 
 ---
 
-## 第4章 Reset 行为
+## 第5章 约束条件
 
-### 4.1 点击 Reset 按钮
+✅ **不引入新依赖**: 格式化逻辑直接在 JS 中实现，无需外部库。
 
-✅ **已确认**: Reset 按钮（`#configResetBtn`）当前恢复所有字段为 `DEFAULT_PARAMS`，langCode 也回到默认值 `'en'`，与国家联动无冲突。
-
----
-
-## 第5章 UI 反馈
-
-❓ **Q7**: 自动填充 langCode 时，是否需要任何视觉提示（如高亮/提示文字"已自动填充"）？
-
-- a) 不需要，静默填充即可
-- b) 短暂高亮输入框（如 1s 黄色背景）
-- c) 输入框旁显示小提示文字
-
-回答：b
-
----
-
-## 第6章 约束条件
-
-✅ **不引入新依赖**: 映射表直接硬编码在 HTML 文件 JS 中，无需外部数据源。
-
-✅ **不做什么**: 不修改已保存 localStorage 中的 langCode（仅影响当前弹窗表单填充，保存时和现有逻辑一致）。
+✅ **不改变主卡片区逻辑**: 仅修改 `renderSubcolPreview` 函数内部，不影响其他展示区域。
 
 ---
 
