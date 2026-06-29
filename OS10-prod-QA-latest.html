@@ -2407,6 +2407,7 @@
             if (!ts) return null;
             var n = Number(ts);
             if (isNaN(n) || n <= 0) return null;
+            if (n < 1e12) n *= 1000; // normalize seconds to milliseconds
             var d = new Date(n + 8 * 3600 * 1000);
             var Y = d.getUTCFullYear();
             var M = String(d.getUTCMonth() + 1).padStart(2, '0');
@@ -2422,6 +2423,7 @@
             if (!ts || Number(ts) <= 0) return null;
             var n = Number(ts);
             if (isNaN(n)) return null;
+            if (n < 1e12) n *= 1000; // normalize seconds to milliseconds
             var d = new Date(n + 8 * 3600 * 1000);
             return d.getUTCFullYear() + '-' +
                 String(d.getUTCMonth() + 1).padStart(2, '0') + '-' +
